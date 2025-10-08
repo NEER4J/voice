@@ -128,6 +128,40 @@ export function VoiceInterface({
     };
   }, [onError, mode]);
 
+  const handleEndCall = useCallback(async () => {
+    try {
+      if (vapiRef.current) {
+        await vapiRef.current.stop();
+      }
+
+      setStatus('ended');
+
+      const duration = Math.floor((Date.now() - startTimeRef.current) / 1000);
+
+      // Call API to end call if we have a conversation ID
+      if (conversationId) {
+        const response = await fetch('/api/voice/end-call', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId,
+            duration,
+            transcript: transcript.length > 0 ? transcript : null
+          })
+        });
+
+        if (!response.ok) {
+          console.error('Failed to end call in database');
+        }
+      }
+
+      onCallEnd(duration, transcript);
+    } catch (error) {
+      console.error('End call error:', error);
+      onError('Failed to end call properly');
+    }
+  }, [conversationId, transcript, onCallEnd, onError]);
+
   useEffect(() => {
     if (status === 'connected') {
       startTimeRef.current = Date.now();
@@ -249,40 +283,6 @@ export function VoiceInterface({
       setIsInitializing(false);
     }
   };
-
-  const handleEndCall = useCallback(async () => {
-    try {
-      if (vapiRef.current) {
-        await vapiRef.current.stop();
-      }
-
-      setStatus('ended');
-
-      const duration = Math.floor((Date.now() - startTimeRef.current) / 1000);
-
-      // Call API to end call if we have a conversation ID
-      if (conversationId) {
-        const response = await fetch('/api/voice/end-call', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            conversationId,
-            duration,
-            transcript: transcript.length > 0 ? transcript : null
-          })
-        });
-
-        if (!response.ok) {
-          console.error('Failed to end call in database');
-        }
-      }
-
-      onCallEnd(duration, transcript);
-    } catch (error) {
-      console.error('End call error:', error);
-      onError('Failed to end call properly');
-    }
-  }, [conversationId, transcript, onCallEnd, onError]);
 
   const toggleMute = () => {
     if (vapiRef.current) {
