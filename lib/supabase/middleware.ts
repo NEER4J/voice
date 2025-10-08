@@ -47,16 +47,58 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims;
 
-  if (
-    request.nextUrl.pathname !== "/" &&
-    !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/auth")
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
+  const { pathname } = request.nextUrl;
+
+  // Public routes that don't require authentication
+  const publicRoutes = ['/', '/auth/login', '/auth/sign-up', '/auth/forgot-password', '/auth/error', '/api/test'];
+  const isPublicRoute = publicRoutes.includes(pathname);
+
+  // Protected routes that require authentication
+  const protectedRoutes = ['/dashboard', '/onboarding', '/conversation'];
+  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+
+  // Skip middleware for API routes (except auth routes)
+  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/')) {
+    console.log('Skipping middleware for API route:', pathname);
+    return supabaseResponse;
+  }
+
+  // If user is not authenticated and trying to access protected routes
+  if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/auth/login";
+    url.pathname = '/auth/login';
     return NextResponse.redirect(url);
+  }
+
+  // If user is authenticated
+  if (user) {
+    // Check if user has completed onboarding
+    const { data: userProfile } = await supabase
+      .from('users')
+      .select('onboarding_completed')
+      .eq('auth_user_id', user.sub)
+      .single();
+
+    // If user hasn't completed onboarding and not on onboarding page
+    if (!userProfile?.onboarding_completed && pathname !== '/onboarding') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/onboarding';
+      return NextResponse.redirect(url);
+    }
+
+    // If user has completed onboarding and on onboarding page, redirect to dashboard
+    if (userProfile?.onboarding_completed && pathname === '/onboarding') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      return NextResponse.redirect(url);
+    }
+
+    // If user is on root and authenticated, redirect to dashboard
+    if (pathname === '/') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      return NextResponse.redirect(url);
+    }
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.
