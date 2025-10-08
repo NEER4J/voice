@@ -78,7 +78,7 @@ export default function DashboardPage() {
   const remainingCalls = userProfile ? 3 - userProfile.call_count : 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className=" bg-background">
       <DashboardHeader 
         userName={userProfile?.name}
         remainingCalls={remainingCalls}
