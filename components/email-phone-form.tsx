@@ -63,7 +63,7 @@ export function EmailPhoneForm({ onSubmit, loading = false, error }: EmailPhoneF
   return (
     <Card className="w-full max-w-md mx-auto flat-card">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Let's get started</CardTitle>
+        <CardTitle className="text-2xl">Let&apos;s get started</CardTitle>
         <CardDescription>
           Tell us a bit about yourself to begin your voice conversation
         </CardDescription>

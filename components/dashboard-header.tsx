@@ -17,7 +17,10 @@ interface DashboardHeaderProps {
 }
 
 export function DashboardHeader({ userName, remainingCalls }: DashboardHeaderProps) {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{
+    name: string;
+    call_count: number;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 

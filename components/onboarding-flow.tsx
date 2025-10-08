@@ -149,7 +149,7 @@ export function OnboardingFlow() {
             <CardHeader className="text-center">
               <CardTitle className="text-3xl mb-4">Welcome to Voice AI</CardTitle>
               <CardDescription className="text-lg">
-                Let's set up your profile and preferences to get you started with your voice conversations.
+                Let&apos;s set up your profile and preferences to get you started with your voice conversations.
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">

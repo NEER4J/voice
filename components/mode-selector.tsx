@@ -69,7 +69,7 @@ export function ModeSelector({ onSelect, selectedMode, loading = false }: ModeSe
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold mb-4">Choose your conversation partner</h2>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          Select the type of conversation you'd like to have. Each mode offers a different experience tailored to your needs.
+          Select the type of conversation you&apos;d like to have. Each mode offers a different experience tailored to your needs.
         </p>
       </div>
 

@@ -9,7 +9,11 @@ import { ConversationHistory } from '@/components/conversation-history';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<{
+    name: string;
+    preferred_mode: string;
+    call_count: number;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
 

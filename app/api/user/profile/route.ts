@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const supabase = await createClient();
 
@@ -70,7 +70,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update user profile
-    const updateData: any = {};
+    const updateData: Record<string, string | null> = {};
     if (name !== undefined) updateData.name = name.trim();
     if (phone !== undefined) updateData.phone = phone?.trim() || null;
     if (preferred_mode !== undefined) updateData.preferred_mode = preferred_mode;

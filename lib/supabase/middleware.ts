@@ -50,8 +50,7 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Public routes that don't require authentication
-  const publicRoutes = ['/', '/auth/login', '/auth/sign-up', '/auth/forgot-password', '/auth/error', '/api/test'];
-  const isPublicRoute = publicRoutes.includes(pathname);
+  // const publicRoutes = ['/', '/auth/login', '/auth/sign-up', '/auth/forgot-password', '/auth/error', '/api/test'];
 
   // Protected routes that require authentication
   const protectedRoutes = ['/dashboard', '/onboarding', '/conversation'];

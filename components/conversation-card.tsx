@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -21,7 +21,7 @@ interface Conversation {
   id: string;
   mode: string;
   duration_seconds: number;
-  transcript: any;
+  transcript: string[];
   started_at: string;
   ended_at: string;
 }
@@ -67,7 +67,7 @@ export function ConversationCard({ conversation }: ConversationCardProps) {
       return 'No transcript available';
     }
     
-    const firstMessage = conversation.transcript.find((msg: any) => 
+    const firstMessage = conversation.transcript.find((msg: string) => 
       typeof msg === 'string' && msg.includes(':')
     );
     

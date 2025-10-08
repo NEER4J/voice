@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,8 +9,6 @@ import {
   MicOff, 
   Phone, 
   PhoneOff, 
-  Volume2, 
-  VolumeX,
   Clock,
   Users
 } from 'lucide-react';
@@ -23,7 +21,7 @@ interface VoiceInterfaceProps {
   conversationId?: string;
   mode: string;
   remainingCalls: number;
-  onCallEnd: (duration: number, transcript?: any) => void;
+  onCallEnd: (duration: number, transcript?: string[]) => void;
   onError: (error: string) => void;
 }
 
@@ -45,7 +43,7 @@ export function VoiceInterface({
   const [conversationId, setConversationId] = useState<string>(propConversationId || '');
   const [isInitializing, setIsInitializing] = useState(false);
   
-  const vapiRef = useRef<any>(null);
+  const vapiRef = useRef<Vapi | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
 
@@ -128,7 +126,7 @@ export function VoiceInterface({
         vapiRef.current.stop();
       }
     };
-  }, [onError]);
+  }, [onError, mode]);
 
   useEffect(() => {
     if (status === 'connected') {
@@ -154,7 +152,7 @@ export function VoiceInterface({
         clearInterval(timerRef.current);
       }
     };
-  }, [status]);
+  }, [status, handleEndCall]);
 
   // Add keyboard shortcut for stopping call
   useEffect(() => {
@@ -171,7 +169,7 @@ export function VoiceInterface({
     return () => {
       document.removeEventListener('keydown', handleKeyPress);
     };
-  }, [status]);
+  }, [status, handleEndCall]);
 
   const handleStartCall = async () => {
     try {
@@ -252,7 +250,7 @@ export function VoiceInterface({
     }
   };
 
-  const handleEndCall = async () => {
+  const handleEndCall = useCallback(async () => {
     try {
       if (vapiRef.current) {
         await vapiRef.current.stop();
@@ -284,7 +282,7 @@ export function VoiceInterface({
       console.error('End call error:', error);
       onError('Failed to end call properly');
     }
-  };
+  }, [conversationId, transcript, onCallEnd, onError]);
 
   const toggleMute = () => {
     if (vapiRef.current) {

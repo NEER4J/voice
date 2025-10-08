@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the assistant record from our database
-    let { data: assistant, error: assistantError } = await supabase
+    const { data: assistant, error: assistantError } = await supabase
       .from('voice_assistants')
       .select('id')
       .eq('vapi_assistant_id', assistantId)
@@ -66,6 +66,8 @@ export async function POST(request: NextRequest) {
 
     console.log('Assistant lookup:', { assistant, assistantError });
 
+    let finalAssistant = assistant;
+    
     if (assistantError || !assistant) {
       console.log('Assistant not found in database, creating new record');
       // If assistant doesn't exist in our database, create it
@@ -88,7 +90,7 @@ export async function POST(request: NextRequest) {
 
       console.log('Assistant record created:', newAssistant);
       // Use the newly created assistant
-      assistant = newAssistant;
+      finalAssistant = newAssistant;
     }
 
     // Create conversation record
@@ -97,7 +99,7 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: userProfile.id,
         user_auth_id: user.id,
-        assistant_id: assistant.id,
+        assistant_id: finalAssistant.id,
         mode,
         vapi_call_id: null, // Will be updated when call starts
         started_at: new Date().toISOString()

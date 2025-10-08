@@ -1,15 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { VoiceInterface } from '@/components/voice-interface';
 import { DashboardHeader } from '@/components/dashboard-header';
 
-export default function NewConversationPage() {
+function NewConversationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<{
+    name: string;
+    preferred_mode: string;
+    call_count: number;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
 
@@ -56,7 +60,7 @@ export default function NewConversationPage() {
     fetchUserProfile();
   }, [router]);
 
-  const handleCallEnd = (duration: number, transcript: any) => {
+  const handleCallEnd = (duration: number, transcript: string[]) => {
     console.log('Call ended:', { duration, transcript });
     router.push('/dashboard');
   };
@@ -118,5 +122,20 @@ export default function NewConversationPage() {
         />
       </div>
     </div>
+  );
+}
+
+export default function NewConversationPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading conversation...</p>
+        </div>
+      </div>
+    }>
+      <NewConversationContent />
+    </Suspense>
   );
 }

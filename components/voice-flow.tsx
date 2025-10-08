@@ -125,7 +125,7 @@ export function VoiceFlow({ onComplete }: VoiceFlowProps) {
     }
   };
 
-  const handleCallEnd = (duration: number, transcript?: any) => {
+  const handleCallEnd = () => {
     setCurrentStep('completed');
     if (onComplete) {
       onComplete();

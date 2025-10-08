@@ -2,10 +2,7 @@ import { AuthButton } from "@/components/auth-button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Button } from "@/components/ui/button";
 import {
-  Mic,
-  Clock,
-  Shield,
-  MessageSquare
+  Mic
 } from "lucide-react";
 import Link from "next/link";
 

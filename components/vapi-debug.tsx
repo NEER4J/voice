@@ -243,7 +243,7 @@ export function VapiDebug() {
         {!checks.microphone && (
           <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
             <p className="text-sm text-yellow-600">
-              <strong>Microphone Access:</strong> Click "Allow" when prompted for microphone access to enable voice calls.
+              <strong>Microphone Access:</strong> Click &quot;Allow&quot; when prompted for microphone access to enable voice calls.
             </p>
           </div>
         )}

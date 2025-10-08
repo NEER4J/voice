@@ -30,8 +30,19 @@ const modeIcons: Record<string, React.ReactNode> = {
 export default function ConversationPage() {
   const router = useRouter();
   const params = useParams();
-  const [conversation, setConversation] = useState<any>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [conversation, setConversation] = useState<{
+    id: string;
+    mode: string;
+    duration_seconds: number;
+    transcript: string[];
+    started_at: string;
+    ended_at: string;
+    vapi_call_id: string | null;
+  } | null>(null);
+  const [userProfile, setUserProfile] = useState<{
+    name: string;
+    call_count: number;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
 

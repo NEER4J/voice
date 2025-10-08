@@ -8,16 +8,14 @@ import { Badge } from '@/components/ui/badge';
 import { 
   MessageSquare, 
   Filter, 
-  RefreshCw,
-  Calendar,
-  Clock
+  RefreshCw
 } from 'lucide-react';
 
 interface Conversation {
   id: string;
   mode: string;
   duration_seconds: number;
-  transcript: any;
+  transcript: string[];
   started_at: string;
   ended_at: string;
 }
