@@ -5,7 +5,11 @@ import * as THREE from 'three';
 import { Mic } from 'lucide-react';
 import Link from 'next/link';
 
-const ParticleCircle: React.FC = () => {
+interface ParticleCircleProps {
+  enableVoiceReactivity?: boolean;
+}
+
+const ParticleCircle: React.FC<ParticleCircleProps> = ({ enableVoiceReactivity = true }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -26,6 +30,8 @@ const ParticleCircle: React.FC = () => {
 
   // Audio setup and analysis
   const setupAudio = async () => {
+    if (!enableVoiceReactivity) return;
+    
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
@@ -283,27 +289,27 @@ const ParticleCircle: React.FC = () => {
       analyzeAudio();
       const { bass, mid, treble, volume } = audioDataRef.current;
       
-      // Audio-reactive rotation (single direction - Y-axis only, 2x less sensitive)
-      const rotationSpeed = 0.3 + bass * 0.05;
+      // Audio-reactive rotation (single direction - Y-axis only, 2x less sensitive) or static rotation
+      const rotationSpeed = enableVoiceReactivity ? (0.3 + bass * 0.05) : 0.3;
       particleSystem.rotation.y = elapsedTime * rotationSpeed;
       // Removed X and Z rotation for single direction rotation
       
-      // Audio-reactive breathing effect (2x less sensitive)
-      const breathScale = 1.0 + Math.sin(elapsedTime * 0.5) * 0.015 + volume * 0.05;
+      // Audio-reactive breathing effect (2x less sensitive) or static breathing
+      const breathScale = enableVoiceReactivity ? (1.0 + Math.sin(elapsedTime * 0.5) * 0.015 + volume * 0.05) : (1.0 + Math.sin(elapsedTime * 0.5) * 0.015);
       particleSystem.scale.setScalar(breathScale);
 
-      // Audio-reactive distortion (2x less sensitive)
-      const distortionStrength = bass * 0.25 + volume * 0.15;
+      // Audio-reactive distortion (2x less sensitive) or static values
+      const distortionStrength = enableVoiceReactivity ? (bass * 0.25 + volume * 0.15) : 0.1;
       
-      // Ripple effects (2x less sensitive)
-      const rippleCount = 3 + Math.floor(volume * 2.5); // 3-5.5 ripples based on volume
-      const rippleSpeed = 2.0 + bass * 0.5;
-      const rippleAmplitude = 0.15 + volume * 0.25;
+      // Ripple effects (2x less sensitive) or static values
+      const rippleCount = enableVoiceReactivity ? (3 + Math.floor(volume * 2.5)) : 3; // 3-5.5 ripples based on volume
+      const rippleSpeed = enableVoiceReactivity ? (2.0 + bass * 0.5) : 2.0;
+      const rippleAmplitude = enableVoiceReactivity ? (0.15 + volume * 0.25) : 0.15;
 
-      // Idle flow animation with audio reactivity (2x less sensitive)
+      // Idle flow animation with audio reactivity (2x less sensitive) or static values
       const timeScaled = elapsedTime * 0.08;
-      const freq = 0.1 + treble * 0.025;
-      const idleFlowStrength = 0.25 + volume * 0.075;
+      const freq = enableVoiceReactivity ? (0.1 + treble * 0.025) : 0.1;
+      const idleFlowStrength = enableVoiceReactivity ? (0.25 + volume * 0.075) : 0.25;
 
       const positionsArray = geometry.attributes.position.array;
 

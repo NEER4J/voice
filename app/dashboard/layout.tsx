@@ -1,5 +1,13 @@
 import { AuthButton } from "@/components/auth-button";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Dashboard - Voice AI",
+  description: "Manage your AI assistant calls and conversations. View your call history, start new conversations, and track your usage with Voice AI.",
+  robots: "noindex, nofollow",
+};
 
 export default function DashboardLayout({
   children,
@@ -21,6 +29,7 @@ export default function DashboardLayout({
 
         <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16">
           <div className="text-muted-foreground">© 2025 Voice AI. All rights reserved.</div>
+          <ThemeSwitcher />
         </footer>
       </div>
     </main>

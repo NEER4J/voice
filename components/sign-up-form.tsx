@@ -2,14 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { MagicButton } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
@@ -20,6 +13,8 @@ export function SignUpForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
@@ -33,6 +28,12 @@ export function SignUpForm({
     setIsLoading(true);
     setError(null);
 
+    if (!firstName.trim() || !lastName.trim()) {
+      setError("First name and last name are required");
+      setIsLoading(false);
+      return;
+    }
+
     if (password !== repeatPassword) {
       setError("Passwords do not match");
       setIsLoading(false);
@@ -45,6 +46,11 @@ export function SignUpForm({
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/onboarding`,
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            full_name: `${firstName} ${lastName}`
+          }
         },
       });
       if (error) throw error;
@@ -57,64 +63,92 @@ export function SignUpForm({
   };
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">Sign up</CardTitle>
-          <CardDescription>Create a new account</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSignUp}>
-            <div className="flex flex-col gap-6">
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="repeat-password">Repeat Password</Label>
-                </div>
-                <Input
-                  id="repeat-password"
-                  type="password"
-                  required
-                  value={repeatPassword}
-                  onChange={(e) => setRepeatPassword(e.target.value)}
-                />
-              </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Creating an account..." : "Sign up"}
-              </Button>
+    <div className={cn("w-full", className)} {...props}>
+      
+
+      <form onSubmit={handleSignUp}>
+        <div className="flex flex-col gap-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstName" className="text-sm font-medium lg:text-foreground lg:font-normal text-gray-700 lg:text-foreground">First Name *</Label>
+              <Input
+                id="firstName"
+                type="text"
+                placeholder="First name"
+                required
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="h-12 text-base lg:flat-input lg:bg-background lg:border-input lg:text-foreground bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30 lg:focus:bg-background"
+              />
             </div>
-            <div className="mt-4 text-center text-sm">
-              Already have an account?{" "}
-              <Link href="/auth/login" className="underline underline-offset-4">
-                Login
-              </Link>
+            <div className="space-y-2">
+              <Label htmlFor="lastName" className="text-sm font-medium lg:text-foreground lg:font-normal text-gray-700 lg:text-foreground">Last Name *</Label>
+              <Input
+                id="lastName"
+                type="text"
+                placeholder="Last name"
+                required
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="h-12 text-base lg:flat-input lg:bg-background lg:border-input lg:text-foreground bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30 lg:focus:bg-background"
+              />
             </div>
-          </form>
-        </CardContent>
-      </Card>
+          </div>
+          
+          <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium lg:text-foreground lg:font-normal text-gray-700 lg:text-foreground">Email *</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="m@example.com"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-12 text-base lg:flat-input lg:bg-background lg:border-input lg:text-foreground bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30 lg:focus:bg-background"
+            />
+          </div>
+          
+          <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-medium lg:text-foreground lg:font-normal text-gray-700 lg:text-foreground">Password *</Label>
+            <Input
+              id="password"
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-12 text-base lg:flat-input lg:bg-background lg:border-input lg:text-foreground bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30 lg:focus:bg-background"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="repeat-password" className="text-sm font-medium lg:text-foreground lg:font-normal text-white">Confirm Password *</Label>
+            <Input
+              id="repeat-password"
+              type="password"
+              required
+              value={repeatPassword}
+              onChange={(e) => setRepeatPassword(e.target.value)}
+              className="h-12 text-base lg:flat-input lg:bg-background lg:border-input lg:text-foreground bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30 lg:focus:bg-background"
+            />
+          </div>
+          
+          {error && (
+            <div className="p-4 bg-red-500/20 border border-red-500/30 rounded-lg lg:bg-destructive/10 lg:border-destructive/20">
+              <p className="text-sm text-red-200 lg:text-destructive">{error}</p>
+            </div>
+          )}
+          
+          <MagicButton type="submit" className="w-full h-12 text-base" disabled={isLoading}>
+            {isLoading ? "Creating account..." : "Create Account"}
+          </MagicButton>
+        </div>
+        <div className="mt-6 text-sm text-black/80 lg:text-muted-foreground">
+          Already have an account?{" "}
+          <Link href="/auth/login" className="text-blue hover:underline font-medium lg:text-primary lg:hover:text-primary/80">
+            Sign in
+          </Link>
+        </div>
+      </form>
     </div>
   );
 }

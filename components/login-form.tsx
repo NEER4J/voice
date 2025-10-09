@@ -2,14 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { MagicButton } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
@@ -48,63 +41,58 @@ export function LoginForm({
   };
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>
-            Enter your email below to login to your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin}>
-            <div className="flex flex-col gap-6">
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
-                  <Link
-                    href="/auth/forgot-password"
-                    className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                  >
-                    Forgot your password?
-                  </Link>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Logging in..." : "Login"}
-              </Button>
+    <div className={cn("w-full", className)} {...props}>
+      
+      
+     
+
+      <form onSubmit={handleLogin}>
+        <div className="flex flex-col gap-6">
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-sm font-medium lg:text-foreground lg:font-normal text-gray-700 lg:text-foreground">Email *</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="m@example.com"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-12 rounded-full text-base lg:flat-input lg:bg-background lg:border-input lg:text-foreground bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:bg-white focus:border-blue-500 lg:focus:bg-background"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="password" className="text-sm font-medium lg:text-foreground lg:font-normal text-gray-700 lg:text-foreground">Password *</Label>
+            <Input
+              id="password"
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-12 text-base lg:flat-input lg:bg-background lg:border-input lg:text-foreground bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:bg-white focus:border-blue-500 lg:focus:bg-background"
+            />
+          </div>
+          
+          {error && (
+            <div className="p-4 bg-red-500/20 border border-red-500/30 rounded-lg lg:bg-destructive/10 lg:border-destructive/20">
+              <p className="text-sm text-red-200 lg:text-destructive">{error}</p>
             </div>
-            <div className="mt-4 text-center text-sm">
-              Don&apos;t have an account?{" "}
-              <Link
-                href="/auth/sign-up"
-                className="underline underline-offset-4"
-              >
-                Sign up
-              </Link>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+          )}
+          
+          <MagicButton type="submit" className="w-full h-12 text-base" disabled={isLoading}>
+            {isLoading ? "Signing in..." : "Sign In"}
+          </MagicButton>
+        </div>
+        <div className="mt-6 text-sm text-black/80 lg:text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/auth/sign-up"
+            className="text-blue hover:underline font-medium lg:text-primary lg:hover:text-primary/80"
+          >
+            Create account
+          </Link>
+        </div>
+      </form>
     </div>
   );
 }

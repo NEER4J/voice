@@ -9,8 +9,35 @@ const defaultUrl = process.env.VERCEL_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
-  title: "Next.js and Supabase Starter Kit",
-  description: "The fastest way to build apps with Next.js and Supabase",
+  title: "Voice AI - Your Personal AI Assistant",
+  description: "Let AI handle your calls so you don't have to. Voice AI is your personal AI assistant that manages calls, schedules, and tasks with intelligent automation.",
+  keywords: "AI assistant, voice AI, call management, personal assistant, AI automation, voice technology, smart assistant",
+  authors: [{ name: "Voice AI Team" }],
+  creator: "Voice AI",
+  publisher: "Voice AI",
+  robots: "index, follow",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: defaultUrl,
+    title: "Voice AI - Your Personal AI Assistant",
+    description: "Let AI handle your calls so you don't have to. Voice AI is your personal AI assistant that manages calls, schedules, and tasks with intelligent automation.",
+    siteName: "Voice AI",
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Voice AI - Your Personal AI Assistant",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Voice AI - Your Personal AI Assistant",
+    description: "Let AI handle your calls so you don't have to. Voice AI is your personal AI assistant that manages calls, schedules, and tasks with intelligent automation.",
+    images: ["/og-image.jpg"],
+  },
 };
 
 const geistSans = Geist({
@@ -29,7 +56,7 @@ export default function RootLayout({
       <body className={`${geistSans.className} antialiased`}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
+          defaultTheme="light"
           enableSystem={false}
           disableTransitionOnChange
         >

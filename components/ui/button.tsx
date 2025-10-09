@@ -63,7 +63,7 @@ interface MagicButtonProps extends Omit<ButtonProps, 'variant' | 'size'> {
 }
 
 const MagicButton = React.forwardRef<HTMLButtonElement, MagicButtonProps>(
-  ({ className, children, icon, size = 'md', ...props }, ref) => {
+  ({ className, children, icon, size = 'md', disabled, ...props }, ref) => {
     const sizeClasses = {
       sm: "px-4 py-2 text-sm",
       md: "px-6 py-3 text-base",
@@ -73,47 +73,50 @@ const MagicButton = React.forwardRef<HTMLButtonElement, MagicButtonProps>(
     return (
       <button
         ref={ref}
+        disabled={disabled}
         className={cn(
           "relative overflow-hidden transition-all duration-300 ease-in-out",
-          "bg-gradient-to-br from-[#3b82f6] via-[#1d4ed8] to-[#1e40af]",
-          "hover:scale-105 active:scale-95 rounded-full border-none outline-none",
-          "text-white font-medium shadow-lg hover:shadow-xl",
-          "shadow-[0_0_30px_rgba(59,130,246,0.6)] hover:shadow-[0_0_50px_rgba(59,130,246,0.8)]",
-          "before:absolute before:inset-[1px] before:rounded-full before:z-0",
-          "before:bg-gradient-to-b before:from-white/19 before:to-transparent",
-          "before:transition-all before:duration-500 before:ease-in-out",
-          "after:absolute after:inset-[2px] after:rounded-full after:z-0",
-          "after:bg-gradient-to-br after:from-[#3b82f6] after:via-[#1d4ed8] after:to-[#1e40af]",
-          "after:transition-all after:duration-500 after:ease-in-out",
+          "rounded-full border-none outline-none font-medium",
+          "disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none",
+          disabled 
+            ? "bg-gray-400 text-gray-200 shadow-none" 
+            : "bg-gradient-to-br from-[#3b82f6] via-[#1d4ed8] to-[#1e40af] text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(59,130,246,0.6)] hover:shadow-[0_0_50px_rgba(59,130,246,0.8)]",
+          !disabled && "before:absolute before:inset-[1px] before:rounded-full before:z-0 before:bg-gradient-to-b before:from-white/19 before:to-transparent before:transition-all before:duration-500 before:ease-in-out",
+          !disabled && "after:absolute after:inset-[2px] after:rounded-full after:z-0 after:bg-gradient-to-br after:from-[#3b82f6] after:via-[#1d4ed8] after:to-[#1e40af] after:transition-all after:duration-500 after:ease-in-out",
           sizeClasses[size],
           className
         )}
         {...props}
       >
-        {/* Floating points */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
-          {Array.from({ length: 10 }, (_, i) => (
-            <div
-              key={i}
-              className={cn(
-                "absolute bottom-[-10px] w-0.5 h-0.5 bg-white rounded-full animate-[floating-points_infinite_ease-in-out]",
-                i === 0 && "left-[10%] opacity-100 animate-[2.35s_0.2s_floating-points_infinite_ease-in-out]",
-                i === 1 && "left-[30%] opacity-70 animate-[2.5s_0.5s_floating-points_infinite_ease-in-out]",
-                i === 2 && "left-[25%] opacity-80 animate-[2.2s_0.1s_floating-points_infinite_ease-in-out]",
-                i === 3 && "left-[44%] opacity-60 animate-[2.05s_0s_floating-points_infinite_ease-in-out]",
-                i === 4 && "left-[50%] opacity-100 animate-[1.9s_0s_floating-points_infinite_ease-in-out]",
-                i === 5 && "left-[75%] opacity-50 animate-[1.5s_1.5s_floating-points_infinite_ease-in-out]",
-                i === 6 && "left-[88%] opacity-90 animate-[2.2s_0.2s_floating-points_infinite_ease-in-out]",
-                i === 7 && "left-[58%] opacity-80 animate-[2.25s_0.2s_floating-points_infinite_ease-in-out]",
-                i === 8 && "left-[98%] opacity-60 animate-[2.6s_0.1s_floating-points_infinite_ease-in-out]",
-                i === 9 && "left-[65%] opacity-100 animate-[2.5s_0.2s_floating-points_infinite_ease-in-out]"
-              )}
-            />
-          ))}
-        </div>
+        {/* Floating points - only show when not disabled */}
+        {!disabled && (
+          <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
+            {Array.from({ length: 10 }, (_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "absolute bottom-[-10px] w-0.5 h-0.5 bg-white rounded-full animate-[floating-points_infinite_ease-in-out]",
+                  i === 0 && "left-[10%] opacity-100 animate-[2.35s_0.2s_floating-points_infinite_ease-in-out]",
+                  i === 1 && "left-[30%] opacity-70 animate-[2.5s_0.5s_floating-points_infinite_ease-in-out]",
+                  i === 2 && "left-[25%] opacity-80 animate-[2.2s_0.1s_floating-points_infinite_ease-in-out]",
+                  i === 3 && "left-[44%] opacity-60 animate-[2.05s_0s_floating-points_infinite_ease-in-out]",
+                  i === 4 && "left-[50%] opacity-100 animate-[1.9s_0s_floating-points_infinite_ease-in-out]",
+                  i === 5 && "left-[75%] opacity-50 animate-[1.5s_1.5s_floating-points_infinite_ease-in-out]",
+                  i === 6 && "left-[88%] opacity-90 animate-[2.2s_0.2s_floating-points_infinite_ease-in-out]",
+                  i === 7 && "left-[58%] opacity-80 animate-[2.25s_0.2s_floating-points_infinite_ease-in-out]",
+                  i === 8 && "left-[98%] opacity-60 animate-[2.6s_0.1s_floating-points_infinite_ease-in-out]",
+                  i === 9 && "left-[65%] opacity-100 animate-[2.5s_0.2s_floating-points_infinite_ease-in-out]"
+                )}
+              />
+            ))}
+          </div>
+        )}
         
         {/* Content */}
-        <span className="relative z-20 flex items-center justify-center gap-1.5 text-white font-medium leading-6 transition-colors duration-200">
+        <span className={cn(
+          "relative z-20 flex items-center justify-center gap-1.5 font-medium leading-6 transition-colors duration-200",
+          disabled ? "text-gray-200" : "text-white"
+        )}>
           {icon && (
             <svg
               className={cn(

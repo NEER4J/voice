@@ -5,13 +5,13 @@ export async function POST(request: NextRequest) {
   try {
     console.log('Onboarding API called');
     
-    const { name, phone, preferred_mode } = await request.json();
-    console.log('Request data:', { name, phone, preferred_mode });
+    const { preferred_mode } = await request.json();
+    console.log('Request data:', { preferred_mode });
 
-    if (!name || !preferred_mode) {
+    if (!preferred_mode) {
       console.log('Missing required fields');
       return NextResponse.json(
-        { error: 'Name and preferred mode are required' },
+        { error: 'Preferred mode is required' },
         { status: 400 }
       );
     }
@@ -58,8 +58,6 @@ export async function POST(request: NextRequest) {
       const { error: updateError } = await supabase
         .from('users')
         .update({
-          name: name.trim(),
-          phone: phone?.trim() || null,
           preferred_mode,
           onboarding_completed: true
         })
@@ -80,9 +78,8 @@ export async function POST(request: NextRequest) {
         .from('users')
         .insert({
           auth_user_id: user.id,
-          name: name.trim(),
+          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
           email: user.email || '',
-          phone: phone?.trim() || null,
           preferred_mode,
           call_count: 0,
           onboarding_completed: true

@@ -71,6 +71,13 @@ export async function updateSession(request: NextRequest) {
 
   // If user is authenticated
   if (user) {
+    // Redirect authenticated users away from auth pages
+    if (pathname === '/auth/login' || pathname === '/auth/sign-up') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      return NextResponse.redirect(url);
+    }
+
     // Check if user has completed onboarding
     const { data: userProfile } = await supabase
       .from('users')

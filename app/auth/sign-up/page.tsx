@@ -1,11 +1,17 @@
 import { SignUpForm } from "@/components/sign-up-form";
+import { SignupLayoutWrapper } from "@/components/signup-layout-wrapper";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Create Account - Voice AI",
+  description: "Join Voice AI and get started with your personal AI assistant. Create your account to begin managing calls with intelligent automation.",
+  robots: "noindex, nofollow",
+};
 
 export default function Page() {
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-      <div className="w-full max-w-sm">
-        <SignUpForm />
-      </div>
-    </div>
+    <SignupLayoutWrapper>
+      <SignUpForm />
+    </SignupLayoutWrapper>
   );
 }
