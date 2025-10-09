@@ -1,5 +1,4 @@
 import { AuthButton } from "@/components/auth-button";
-import { ThemeSwitcher } from "@/components/theme-switcher";
 import Link from "next/link";
 
 export default function DashboardLayout({
@@ -20,7 +19,9 @@ export default function DashboardLayout({
           {children}
         </div>
 
-        <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16"><ThemeSwitcher /></footer>
+        <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16">
+          <div className="text-muted-foreground">© 2025 Voice AI. All rights reserved.</div>
+        </footer>
       </div>
     </main>
   );
