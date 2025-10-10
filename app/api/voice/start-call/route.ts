@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { assistantId, mode } = await request.json();
+    const { assistantId, mode, language = 'english' } = await request.json();
 
     if (!assistantId || !mode) {
       return NextResponse.json(
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Start call request:', { assistantId, mode });
+    console.log('Start call request:', { assistantId, mode, language });
 
     const supabase = await createClient();
 
@@ -32,10 +32,10 @@ export async function POST(request: NextRequest) {
     console.log('Authenticated user:', user.id);
 
     // Get user profile
-    let userProfile;
+    let userProfile: { id: string; name: string; call_count: number } | null = null;
     const { data: existingUserProfile, error: userError } = await supabase
       .from('users')
-      .select('id, call_count')
+      .select('id, name, call_count')
       .eq('auth_user_id', user.id)
       .single();
 
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
           name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
           call_count: 0
         })
-        .select('id, call_count')
+        .select('id, name, call_count')
         .single();
       
       if (createUserError || !newUserProfile) {
@@ -69,6 +69,14 @@ export async function POST(request: NextRequest) {
       userProfile = newUserProfile;
     } else {
       userProfile = existingUserProfile;
+    }
+
+    if (!userProfile) {
+      console.error('User profile is null');
+      return NextResponse.json(
+        { error: 'User profile not found' },
+        { status: 404 }
+      );
     }
 
     console.log('User profile found:', userProfile);
@@ -111,6 +119,14 @@ export async function POST(request: NextRequest) {
       finalAssistant = newAssistant;
     }
 
+    if (!finalAssistant) {
+      console.error('No assistant found');
+      return NextResponse.json(
+        { error: 'Assistant not found' },
+        { status: 404 }
+      );
+    }
+
     // Create conversation record
     const { data: conversation, error: conversationError } = await supabase
       .from('voice_conversations')
@@ -136,6 +152,74 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('Conversation created successfully:', conversation);
+
+    // Update assistant language setting
+    if (language) {
+      try {
+        console.log('Updating assistant language to:', language);
+        
+        // Update the assistant in Vapi with Arabic language instructions
+        const languageInstructions = {
+          'arabic': 'Please respond in Arabic. Use clear, modern Arabic language.',
+          'english': ''
+        };
+        
+        const userName = userProfile?.name || 'there';
+        const firstMessages = {
+          'arabic': `مرحباً ${userName}! أنا مساعدك الذكي. كيف يمكنني مساعدتك اليوم؟`,
+          'english': `Hello ${userName}! I'm your AI assistant. How can I help you today?`
+        };
+        
+        const languageInstruction = languageInstructions[language as keyof typeof languageInstructions] || '';
+        const firstMessage = firstMessages[language as keyof typeof firstMessages] || firstMessages.english;
+        
+        // Get current assistant from Vapi
+        const getAssistantResponse = await fetch(`https://api.vapi.ai/assistant/${assistantId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.VAPI_API_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (getAssistantResponse.ok) {
+          const currentAssistant = await getAssistantResponse.json();
+          
+          // Update the system message with language instruction
+          const updatedSystemMessage = `${currentAssistant.model.messages[0].content} ${languageInstruction}`.trim();
+          
+          // Update assistant in Vapi
+          const updateResponse = await fetch(`https://api.vapi.ai/assistant/${assistantId}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${process.env.VAPI_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: {
+                ...currentAssistant.model,
+                messages: [
+                  {
+                    role: 'system',
+                    content: updatedSystemMessage
+                  }
+                ]
+              },
+              firstMessage: firstMessage
+            })
+          });
+
+          if (updateResponse.ok) {
+            console.log('Assistant language updated successfully');
+          } else {
+            console.error('Failed to update assistant language:', await updateResponse.text());
+          }
+        }
+      } catch (error) {
+        console.error('Error updating assistant language:', error);
+        // Don't fail the conversation creation if language update fails
+      }
+    }
 
     return NextResponse.json({
       conversationId: conversation.id,

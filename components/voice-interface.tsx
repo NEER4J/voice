@@ -2,17 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { 
-  Mic, 
-  MicOff, 
-  Phone, 
   PhoneOff, 
-  Clock,
-  Users,
-  Volume2,
-  VolumeX
+  Clock
 } from 'lucide-react';
 
 // Import Vapi SDK
@@ -21,7 +13,7 @@ import Vapi from '@vapi-ai/web';
 interface VoiceInterfaceProps {
   assistantId?: string;
   conversationId?: string;
-  mode: string;
+  mode?: string;
   tone?: string;
   language?: string;
   autoStart?: boolean;
@@ -34,18 +26,16 @@ type CallStatus = 'idle' | 'connecting' | 'connected' | 'speaking' | 'listening'
 export function VoiceInterface({ 
   assistantId: propAssistantId, 
   conversationId: propConversationId, 
-  mode, 
-  tone = 'friendly',
+  mode = 'Assistant', 
   language = 'english',
   autoStart = false,
   onCallEnd, 
   onError 
 }: VoiceInterfaceProps) {
   const [status, setStatus] = useState<CallStatus>('idle');
-  const [isMuted, setIsMuted] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   // Removed transcript state since we're not showing live transcripts
-  const [assistantId, setAssistantId] = useState<string>(propAssistantId || '');
+  const [assistantId] = useState<string>(propAssistantId || '');
   const [conversationId, setConversationId] = useState<string>(propConversationId || '');
   const [isInitializing, setIsInitializing] = useState(false);
   const [vapiCallId, setVapiCallId] = useState<string>('');
@@ -70,7 +60,7 @@ export function VoiceInterface({
       vapiRef.current = new Vapi(vapiKey);
       
       // Set up event listeners
-      vapiRef.current.on('call-start', (callData?: any) => {
+      vapiRef.current.on('call-start', (callData?: { id?: string }) => {
         console.log('Call started with data:', callData);
         setStatus('connected');
         
@@ -83,7 +73,7 @@ export function VoiceInterface({
           
           // Try to get call ID from Vapi instance
           if (vapiRef.current) {
-            const instanceCallId = (vapiRef.current as any).callId || (vapiRef.current as any).id;
+            const instanceCallId = (vapiRef.current as { callId?: string; id?: string }).callId || (vapiRef.current as { callId?: string; id?: string }).id;
             if (instanceCallId) {
               setVapiCallId(instanceCallId);
               console.log('Vapi call ID captured from instance:', instanceCallId);
@@ -96,7 +86,7 @@ export function VoiceInterface({
         // Try to get call ID after a short delay if not captured yet
         setTimeout(() => {
           if (!vapiCallId && vapiRef.current) {
-            const callId = (vapiRef.current as any).callId || (vapiRef.current as any).id;
+            const callId = (vapiRef.current as { callId?: string; id?: string }).callId || (vapiRef.current as { callId?: string; id?: string }).id;
             if (callId) {
               setVapiCallId(callId);
               console.log('Captured call ID from Vapi instance after delay:', callId);
@@ -115,12 +105,12 @@ export function VoiceInterface({
         // Try to get call ID from Vapi instance if we don't have it yet
         if (!vapiCallId && vapiRef.current) {
           // Some Vapi instances might expose the call ID
-          const callId = (vapiRef.current as any).callId || (vapiRef.current as any).id;
+          const callId = (vapiRef.current as { callId?: string; id?: string }).callId || (vapiRef.current as { callId?: string; id?: string }).id;
           if (callId) {
             setVapiCallId(callId);
             console.log('Captured call ID from Vapi instance on call-end:', callId);
           } else {
-            console.log('Could not get call ID from Vapi instance. Available properties:', Object.keys(vapiRef.current));
+            console.log('Could not get call ID from Vapi instance. Available properties:', Object.keys(vapiRef.current as unknown as Record<string, unknown>));
           }
         }
       });
@@ -199,28 +189,12 @@ export function VoiceInterface({
         throw new Error('Vapi not initialized');
       }
 
-      let currentAssistantId = assistantId;
+      const currentAssistantId = assistantId;
       let currentConversationId = conversationId;
 
-      // Create assistant if not provided
+      // Use provided assistant ID
       if (!currentAssistantId) {
-        console.log('Creating assistant for mode:', mode, 'tone:', tone, 'language:', language);
-        const assistantResponse = await fetch('/api/voice/create-assistant', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode, tone, language })
-        });
-
-        if (!assistantResponse.ok) {
-          const errorData = await assistantResponse.json();
-          console.error('Assistant creation failed:', errorData);
-          throw new Error(errorData.error || errorData.message || 'Failed to create assistant');
-        }
-
-        const assistantData = await assistantResponse.json();
-        currentAssistantId = assistantData.assistantId;
-        setAssistantId(currentAssistantId);
-        console.log('Assistant created:', currentAssistantId);
+        throw new Error('Assistant ID is required. Please complete onboarding first.');
       }
 
       // Create conversation if not provided
@@ -231,7 +205,8 @@ export function VoiceInterface({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             assistantId: currentAssistantId,
-            mode
+            mode: 'Assistant', // Default mode since we're using existing assistant
+            language: language
           })
         });
 
@@ -265,7 +240,7 @@ export function VoiceInterface({
     } finally {
       setIsInitializing(false);
     }
-  }, [assistantId, conversationId, mode, tone, language, onError]);
+  }, [assistantId, conversationId, onError]);
 
   // Auto-start effect
   useEffect(() => {
@@ -277,14 +252,6 @@ export function VoiceInterface({
   // Auto-scroll to bottom when new transcript messages arrive
   // Removed transcript auto-scroll since we're not showing live transcripts
 
-  const handleToggleMute = useCallback(() => {
-    if (vapiRef.current) {
-      const newMuteState = !isMuted;
-      vapiRef.current.setMuted(newMuteState);
-      setIsMuted(newMuteState);
-      console.log('Microphone muted:', newMuteState);
-    }
-  }, [isMuted]);
 
   const handleEndCall = useCallback(async () => {
     try {
@@ -325,7 +292,7 @@ export function VoiceInterface({
           // If we have a transcript from the API, use it
           if (data.transcript && data.transcript.length > 0) {
             console.log('Received transcript from API with', data.transcript.length, 'messages');
-            const formattedTranscript = data.transcript.map((item: any) => 
+            const formattedTranscript = data.transcript.map((item: { role: string; message: string }) => 
               `${item.role === 'assistant' ? mode : 'You'}: ${item.message}`
             );
             onCallEnd(duration, formattedTranscript);
@@ -392,32 +359,10 @@ export function VoiceInterface({
     };
   }, [status, handleEndCall]);
 
-  const toggleMute = () => {
-    if (vapiRef.current) {
-      if (isMuted) {
-        vapiRef.current.setMuted(false);
-      } else {
-        vapiRef.current.setMuted(true);
-      }
-    }
-    setIsMuted(!isMuted);
-  };
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getStatusColor = () => {
-    switch (status) {
-      case 'connecting': return 'bg-yellow-100 text-yellow-800';
-      case 'connected': return 'bg-green-100 text-green-800';
-      case 'speaking': return 'bg-blue-100 text-blue-800';
-      case 'listening': return 'bg-purple-100 text-purple-800';
-      case 'ended': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
   };
 
   const getStatusText = () => {
@@ -456,24 +401,10 @@ export function VoiceInterface({
         </div>
       </div>
 
-      {/* Floating Action Buttons - Bottom Center */}
-      {(status === 'connected' || status === 'speaking' || status === 'listening') && (
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10 flex space-x-4">
-          {/* Mute Button */}
-          <Button
-            onClick={handleToggleMute}
-            variant="outline"
-            size="lg"
-            className={`rounded-full w-16 h-16 shadow-lg transition-all duration-200 ${
-              isMuted 
-                ? 'bg-red-500 hover:bg-red-600 text-white border-red-500' 
-                : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300'
-            }`}
-          >
-            {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
-          </Button>
 
-          {/* Stop Button */}
+      {/* Stop Button - Bottom Center */}
+      {(status === 'connected' || status === 'speaking' || status === 'listening') && (
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10">
           <Button
             onClick={handleEndCall}
             variant="destructive"
@@ -490,26 +421,28 @@ export function VoiceInterface({
         </div>
       )}
 
-      {/* Loading/Processing States */}
+      {/* Loading/Processing States - Bottom Center */}
       {(status === 'connecting' || status === 'idle') && (
-        <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center z-20">
-          <div className="text-center p-6 bg-white/90 rounded-2xl shadow-lg border border-slate-200">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-lg font-medium text-slate-700">
-              {status === 'connecting' ? 'Preparing conversation...' : 'Starting up...'}
-            </p>
-            <p className="text-sm text-slate-500 mt-2">Please wait while we set up your voice assistant</p>
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl px-6 py-4 border border-slate-200/50 shadow-lg">
+            <div className="flex items-center space-x-3">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+              <span className="text-sm font-medium text-slate-700">
+                {status === 'connecting' ? 'Preparing conversation...' : 'Starting up...'}
+              </span>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Processing Overlay */}
+      {/* Processing State - Bottom Center */}
       {isEndingCall && (
-        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-20">
-          <div className="text-center p-6 bg-white/90 rounded-2xl shadow-lg border border-slate-200">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-lg font-medium text-slate-700">Processing transcript...</p>
-            <p className="text-sm text-slate-500 mt-2">Saving your conversation data</p>
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl px-6 py-4 border border-slate-200/50 shadow-lg">
+            <div className="flex items-center space-x-3">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+              <span className="text-sm font-medium text-slate-700">Processing transcript...</span>
+            </div>
           </div>
         </div>
       )}

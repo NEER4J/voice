@@ -77,7 +77,6 @@ export default function DashboardPage() {
     );
   }
 
-  const remainingCalls = userProfile ? 3 - userProfile.call_count : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">

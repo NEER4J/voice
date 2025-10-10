@@ -14,9 +14,9 @@ const LANGUAGE_INSTRUCTIONS = {
 
 export async function POST(request: NextRequest) {
   try {
-    const { mode, tone = 'friendly', language = 'english' } = await request.json();
+    const { mode, tone = 'friendly', language = 'english', userId } = await request.json();
 
-    console.log('Create assistant request:', { mode, tone, language });
+    console.log('Create assistant request:', { mode, tone, language, userId });
 
     if (!mode) {
       console.log('Missing required field:', { mode });
@@ -28,18 +28,42 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient();
 
-    // Get the authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
-      console.log('Authentication failed:', authError);
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
+    let targetUserId: string;
 
-    console.log('Authenticated user:', user.id);
+    if (userId) {
+      // If userId is provided (from onboarding), use it directly
+      targetUserId = userId;
+      console.log('Using provided userId:', targetUserId);
+    } else {
+      // Get the authenticated user (for direct API calls)
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.log('Authentication failed:', authError);
+        return NextResponse.json(
+          { error: 'Authentication required' },
+          { status: 401 }
+        );
+      }
+
+      // Get user from users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .single();
+
+      if (userError || !userData) {
+        console.log('User not found in database:', userError);
+        return NextResponse.json(
+          { error: 'User not found' },
+          { status: 404 }
+        );
+      }
+
+      targetUserId = userData.id;
+      console.log('Authenticated user:', targetUserId);
+    }
 
     // Build the system prompt with tone and language
     const basePrompt = `You are a helpful AI assistant. Provide clear, accurate, and helpful responses to user questions. Be professional, friendly, and concise. Focus on being useful and informative.`;
@@ -49,47 +73,24 @@ export async function POST(request: NextRequest) {
     const systemPrompt = `${basePrompt} ${toneModifier} ${languageInstruction}`.trim();
 
     // Get user profile first
-    let userProfile;
-    const { data: existingUserProfile, error: userProfileError } = await supabase
+    const { data: userProfile, error: userProfileError } = await supabase
       .from('users')
       .select('id, name')
-      .eq('auth_user_id', user.id)
+      .eq('id', targetUserId)
       .single();
 
     console.log('User profile lookup:', { 
-      existingUserProfile, 
+      userProfile, 
       userProfileError, 
-      authUserId: user.id 
+      targetUserId 
     });
 
-    if (!existingUserProfile || userProfileError) {
+    if (!userProfile || userProfileError) {
       console.error('User profile not found:', userProfileError);
-      
-      // Try to create user profile if it doesn't exist
-      console.log('Attempting to create user profile for auth_user_id:', user.id);
-      
-      const { data: newUserProfile, error: createUserError } = await supabase
-        .from('users')
-        .insert({
-          auth_user_id: user.id,
-          name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
-          call_count: 0
-        })
-        .select('id, name')
-        .single();
-      
-      if (createUserError || !newUserProfile) {
-        console.error('Failed to create user profile:', createUserError);
-        return NextResponse.json(
-          { error: 'Failed to create user profile. Please contact support.' },
-          { status: 500 }
-        );
-      }
-      
-      console.log('Created new user profile:', newUserProfile);
-      userProfile = newUserProfile;
-    } else {
-      userProfile = existingUserProfile;
+      return NextResponse.json(
+        { error: 'User profile not found. Please contact support.' },
+        { status: 404 }
+      );
     }
 
     if (!userProfile.id) {
@@ -100,15 +101,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if assistant for this mode already exists (fallback for when tone/language columns don't exist yet)
-    const { data: existingAssistant, error: fetchError } = await supabase
+    // Check if assistant for this mode already exists (get the most recent one)
+    const { data: existingAssistants, error: fetchError } = await supabase
       .from('voice_assistants')
       .select('*')
       .eq('mode', mode)
       .eq('user_id', userProfile.id)
-      .single();
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-    if (existingAssistant && !fetchError) {
+    if (existingAssistants && existingAssistants.length > 0 && !fetchError) {
+      const existingAssistant = existingAssistants[0];
       // Verify the assistant still exists in Vapi
       try {
         const verifyResponse = await fetch(`https://api.vapi.ai/assistant/${existingAssistant.vapi_assistant_id}`, {
@@ -196,7 +199,13 @@ export async function POST(request: NextRequest) {
     const assistant = await response.json();
 
         // Store the assistant in our database for reuse
-        const insertData: any = {
+        const insertData: {
+          user_id: string;
+          mode: string;
+          vapi_assistant_id: string;
+          tone?: string;
+          language?: string;
+        } = {
           user_id: userProfile.id,
           mode,
           vapi_assistant_id: assistant.id
@@ -206,7 +215,7 @@ export async function POST(request: NextRequest) {
         try {
           insertData.tone = tone;
           insertData.language = language;
-        } catch (error) {
+        } catch {
           // Columns don't exist yet, continue without them
           console.log('Tone/language columns not available yet');
         }

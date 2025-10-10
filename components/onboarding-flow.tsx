@@ -54,9 +54,16 @@ const purposes: Purpose[] = [
   }
 ];
 
+const tones = [
+  { id: 'professional', label: 'Professional', description: 'Clear and formal' },
+  { id: 'casual', label: 'Casual', description: 'Relaxed and friendly' },
+  { id: 'friendly', label: 'Friendly', description: 'Warm and supportive' }
+];
+
 export function OnboardingFlow() {
   const { currentStep } = useOnboarding();
   const [selectedPurpose, setSelectedPurpose] = useState<string>('');
+  const [selectedTone, setSelectedTone] = useState<string>('friendly');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
@@ -77,14 +84,16 @@ export function OnboardingFlow() {
 
     try {
       console.log('Submitting onboarding data:', {
-        preferred_mode: selectedPurpose
+        preferred_mode: selectedPurpose,
+        tone: selectedTone
       });
 
       const response = await fetch('/api/user/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          preferred_mode: selectedPurpose
+          preferred_mode: selectedPurpose,
+          tone: selectedTone
         })
       });
 
@@ -113,37 +122,73 @@ export function OnboardingFlow() {
       case 'purpose':
         return (
           <div className="w-full">
-            
-
-            <div className="flex flex-col gap-4 mb-8">
-              {purposes.map((purpose) => (
-                <div
-                  key={purpose.id}
-                  className={`group cursor-pointer transition-all duration-200 rounded-xl p-4 border-2 ${
-                    selectedPurpose === purpose.id 
-                      ? 'bg-blue-600 text-white border-blue-500' 
-                      : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50 lg:bg-background lg:border lg:border-input lg:hover:bg-blue-600 lg:hover:text-white lg:text-foreground'
-                  }`}
-                  onClick={() => handlePurposeSelect(purpose.id)}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+            {/* Purpose Selection */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-semibold mb-6">What do you want an assistant for?</h2>
+              <div className="flex flex-col gap-4">
+                {purposes.map((purpose) => (
+                  <div
+                    key={purpose.id}
+                    className={`group cursor-pointer transition-all duration-200 rounded-xl p-4 border-1 ${
                       selectedPurpose === purpose.id 
-                        ? 'border-white bg-white' 
-                        : 'border-gray-400 group-hover:border-blue-500'
-                    }`}>
-                      {selectedPurpose === purpose.id && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-600"></div>
-                      )}
+                        ? 'bg-blue-600 text-white' 
+                        : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50 lg:bg-background lg:border lg:border-input lg:hover:bg-blue-600 lg:hover:text-white lg:text-foreground'
+                    }`}
+                    onClick={() => handlePurposeSelect(purpose.id)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                        selectedPurpose === purpose.id 
+                          ? 'border-white bg-white' 
+                          : 'border-gray-400 group-hover:border-blue-500'
+                      }`}>
+                        {selectedPurpose === purpose.id && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-600"></div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {purpose.icon}
+                        <div>
+                          <h3 className={`text-lg font-normal ${
+                            selectedPurpose === purpose.id ? 'text-white' : 'text-gray-900 lg:text-foreground group-hover:text-white'
+                          }`}>{purpose.title}</h3>
+                          
+                        </div>
+                      </div>
                     </div>
-                    <h3 className={`text-lg font-normal ${
-                      selectedPurpose === purpose.id ? 'text-white' : 'text-gray-900 lg:text-foreground group-hover:text-white'
-                    }`}>{purpose.title}</h3>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
+            {/* Tone Selection */}
+            {selectedPurpose && (
+              <div className="mb-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <h2 className="text-2xl font-semibold">Choose your assistant&apos;s tone</h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {tones.map((tone) => (
+                    <div
+                      key={tone.id}
+                      className={`cursor-pointer transition-all duration-200 rounded-xl p-4 border ${
+                        selectedTone === tone.id 
+                          ? 'bg-blue-600 text-white border-blue-500' 
+                          : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
+                      }`}
+                      onClick={() => setSelectedTone(tone.id)}
+                    >
+                      <div className="text-center">
+                        <h3 className={`text-lg font-semibold ${
+                          selectedTone === tone.id ? 'text-white' : 'text-gray-900'
+                        }`}>{tone.label}</h3>
+                    
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {error && (
               <div className="text-center mb-6">
@@ -160,7 +205,7 @@ export function OnboardingFlow() {
                 size="lg"
                 className="px-8 py-3"
               >
-                {loading ? 'Completing...' : 'Complete Setup'}
+                {loading ? 'Creating your assistant...' : 'Complete Setup'}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </MagicButton>
             </div>

@@ -14,11 +14,10 @@ function NewConversationContent() {
     name: string;
     call_count: number;
   } | null>(null);
+  const [assistantId, setAssistantId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
 
-  const mode = searchParams.get('mode') || 'Assistant';
-  const tone = searchParams.get('tone') || 'friendly';
   const language = searchParams.get('language') || 'english';
 
   useEffect(() => {
@@ -34,7 +33,7 @@ function NewConversationContent() {
 
         const { data: profile, error: profileError } = await supabase
           .from('users')
-          .select('name, call_count')
+          .select('id, name, call_count')
           .eq('auth_user_id', user.id)
           .single();
 
@@ -45,6 +44,22 @@ function NewConversationContent() {
         }
 
         setUserProfile(profile);
+
+        // Get user's existing assistant (get the most recent one)
+        const { data: assistants, error: assistantError } = await supabase
+          .from('voice_assistants')
+          .select('vapi_assistant_id')
+          .eq('user_id', profile.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (assistantError || !assistants || assistants.length === 0) {
+          console.error('Assistant fetch error:', assistantError);
+          setError('Failed to load assistant. Please complete onboarding first.');
+          return;
+        }
+
+        setAssistantId(assistants[0].vapi_assistant_id);
         
         // No call limit checks needed
       } catch (err) {
@@ -114,8 +129,7 @@ function NewConversationContent() {
             {/* Voice Interface - Overlay */}
             <div className="absolute inset-0">
               <VoiceInterface
-                mode={mode}
-                tone={tone}
+                assistantId={assistantId}
                 language={language}
                 autoStart={true}
                 onCallEnd={handleCallEnd}
