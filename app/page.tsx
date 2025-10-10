@@ -7,12 +7,12 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Voice AI - Let AI Handle Your Calls",
-  description: "Transform your productivity with Voice AI. Our intelligent assistant handles your calls, schedules, and tasks so you can focus on what matters most.",
-  keywords: "AI assistant, voice AI, call management, productivity, automation, personal assistant",
+  title: "Voice AI - Three Specialized AI Assistants",
+  description: "Get three specialized AI assistants for scheduling, sales, and service. Let AI handle your appointments, sales calls, and customer support so you can focus on what matters most.",
+  keywords: "AI assistant, voice AI, scheduling assistant, sales assistant, service assistant, appointment booking, call management, productivity",
   openGraph: {
-    title: "Voice AI - Let AI Handle Your Calls",
-    description: "Transform your productivity with Voice AI. Our intelligent assistant handles your calls, schedules, and tasks so you can focus on what matters most.",
+    title: "Voice AI - Three Specialized AI Assistants",
+    description: "Get three specialized AI assistants for scheduling, sales, and service. Let AI handle your appointments, sales calls, and customer support so you can focus on what matters most.",
     type: "website",
   },
 };
@@ -67,10 +67,10 @@ export default function Home() {
 
         {/* Hero Section */}
         <section className="py-12 sm:py-16 lg:py-20 flex items-center justify-center flex-col" >
-          <div className="max-w-4xl mx-auto text-center">
+          <div className="max-w-5xl mx-auto text-center">
             <h1 className="text-4xl sm:text-5xl md:text-7xl font-semibold leading-tight" style={{ marginBottom: '-40px' }}>
-              <span className="bg-gradient-to-br from-gray-400 via-gray-200 to-white bg-clip-text text-transparent" >
-                Let AI Handle Your Calls, So You Don&apos;t Have To
+              <span className="bg-gradient-to-br from-gray-200 via-blue-100 to-white bg-clip-text text-transparent" >
+                AI Assistants for <br /> Scheduling, Sales & Service
               </span>
             </h1>
             

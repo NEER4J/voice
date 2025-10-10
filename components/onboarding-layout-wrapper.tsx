@@ -10,7 +10,7 @@ interface OnboardingLayoutWrapperProps {
 }
 
 export function OnboardingLayoutWrapper({ children }: OnboardingLayoutWrapperProps) {
-  const { firstName, currentStep } = useOnboarding();
+  const { firstName } = useOnboarding();
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -44,28 +44,12 @@ export function OnboardingLayoutWrapper({ children }: OnboardingLayoutWrapperPro
         </div>
         <div className="relative z-10 flex items-center justify-center w-full p-8">
           <div className="text-left text-white max-w-lg">
-            {currentStep === 'purpose' && firstName ? (
-              <>
-                <h1 className="text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-                  Hi {firstName}! 
-                </h1>
-                <p className="text-xl lg:text-2xl opacity-90 leading-relaxed">
-                  Now let&apos;s find out what you&apos;d like your AI assistant to help you with just select your purpose.
-                </p>
-              </>
-            ) : (
-              <>
-                <h1 className="text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-                  Welcome to 
-                  
-                    Voice AI
-                  
-                </h1>
-                <p className="text-xl lg:text-2xl opacity-90 leading-relaxed">
-                  Just a few quick questions to get started
-                </p>
-              </>
-            )}
+            <h1 className="text-6xl lg:text-7xl font-bold mb-6 leading-tight">
+              {firstName ? `Hi ${firstName}!` : 'Welcome!'}
+            </h1>
+            <p className="text-xl lg:text-2xl opacity-90 leading-relaxed">
+              Let&apos;s set up your personalized AI assistants to help you with scheduling, sales, and service.
+            </p>
           </div>
         </div>
       </div>
@@ -74,28 +58,12 @@ export function OnboardingLayoutWrapper({ children }: OnboardingLayoutWrapperPro
       <div className="w-full lg:w-1/2 flex flex-col relative z-10">
         {/* Mobile Welcome Text */}
         <div className="lg:hidden text-left text-white p-6 pb-4">
-          {currentStep === 'purpose' && firstName ? (
-            <>
-              <h1 className="text-4xl font-bold mb-2">
-               Hi {firstName}! 
-              </h1>
-              <p className="text-lg opacity-90">
-                  Now let&apos;s find out what you&apos;d like your AI assistant to help you with
-              </p>
-            </>
-          ) : (
-            <>
-              <h1 className="text-4xl font-bold mb-2">
-                Welcome to 
-                
-                  Voice AI
-                
-              </h1>
-              <p className="text-lg opacity-90">
-                Just a few quick questions to get started
-              </p>
-            </>
-          )}
+          <h1 className="text-4xl font-bold mb-2">
+            {firstName ? `Hi ${firstName}!` : 'Welcome!'}
+          </h1>
+          <p className="text-lg opacity-90">
+            Let&apos;s set up your personalized AI assistants.
+          </p>
         </div>
 
         {/* Onboarding Content */}

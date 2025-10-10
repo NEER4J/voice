@@ -153,7 +153,8 @@ export function VoiceInterface({
 
       vapiRef.current.on('error', (error) => {
         console.error('Vapi error:', error);
-        onError('Voice connection error. Please try again.');
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        onError(`Voice connection error: ${error?.message || 'Unknown error'}. Please try again.`);
         setStatus('idle');
       });
     }
@@ -166,7 +167,7 @@ export function VoiceInterface({
         vapiRef.current.stop();
       }
     };
-  }, [onError, mode]);
+  }, [onError, mode, vapiCallId]);
 
   const handleStartCall = useCallback(async () => {
     try {
@@ -196,6 +197,10 @@ export function VoiceInterface({
       if (!currentAssistantId) {
         throw new Error('Assistant ID is required. Please complete onboarding first.');
       }
+
+      console.log('Starting call with assistant ID:', currentAssistantId);
+      console.log('Assistant ID type:', typeof currentAssistantId);
+      console.log('Assistant ID length:', currentAssistantId.length);
 
       // Create conversation if not provided
       if (!currentConversationId) {
@@ -229,8 +234,17 @@ export function VoiceInterface({
       if (!vapiRef.current) {
         throw new Error('Vapi not initialized');
       }
-      
-      await vapiRef.current.start(currentAssistantId);
+
+      try {
+        console.log('Calling vapiRef.current.start with:', currentAssistantId);
+        await vapiRef.current.start(currentAssistantId);
+        console.log('Vapi start call successful');
+      } catch (startError) {
+        console.error('Vapi start call failed:', startError);
+        console.error('Start error details:', JSON.stringify(startError, null, 2));
+        const errorMessage = startError instanceof Error ? startError.message : 'Unknown error';
+        throw new Error(`Failed to start call: ${errorMessage}`);
+      }
 
     } catch (error) {
       console.error('Start call error:', error);
@@ -240,7 +254,7 @@ export function VoiceInterface({
     } finally {
       setIsInitializing(false);
     }
-  }, [assistantId, conversationId, onError]);
+  }, [assistantId, conversationId, onError, language]);
 
   // Auto-start effect
   useEffect(() => {
@@ -314,7 +328,7 @@ export function VoiceInterface({
     } finally {
       setIsEndingCall(false);
     }
-  }, [conversationId, vapiCallId, onCallEnd, onError]);
+  }, [conversationId, vapiCallId, onCallEnd, onError, mode]);
 
   useEffect(() => {
     if (status === 'connected') {
@@ -323,8 +337,8 @@ export function VoiceInterface({
         const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
         setElapsedTime(elapsed);
         
-        // Auto-end call at 60 seconds
-        if (elapsed >= 60) {
+        // Auto-end call at 180 seconds (3 minutes)
+        if (elapsed >= 180) {
           handleEndCall();
         }
       }, 1000);

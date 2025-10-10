@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import * as THREE from 'three';
 import { Mic } from 'lucide-react';
-import Link from 'next/link';
+// import Link from 'next/link';
 
 interface ParticleCircleProps {
   enableVoiceReactivity?: boolean;
@@ -430,7 +430,7 @@ const ParticleCircle: React.FC<ParticleCircleProps> = ({ enableVoiceReactivity =
       }
       window.removeEventListener('resize', debouncedResize);
     };
-  }, [debouncedResize]);
+  }, [debouncedResize, enableVoiceReactivity, setupAudio]);
 
   return (
     <div className="flex justify-center items-center w-full mx-auto relative">
@@ -443,19 +443,11 @@ const ParticleCircle: React.FC<ParticleCircleProps> = ({ enableVoiceReactivity =
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="relative w-28 h-28 flex items-center justify-center">
            
-            {/* Small transparent blue circle */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="!w-12 !h-12 rounded-full" style={{ background: 'rgba(55, 118, 255, 0.7)' }} />
-            </div>
+          <Mic className="w-14 h-14  text-white bg-black/50 rounded-full p-4" />
 
-            {/* Large transparent blue circle */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="!w-20 !h-20 rounded-full" style={{ background: 'rgba(55, 118, 255, 0.7)' }} />
-            </div>
-            {/* Small microphone icon */}
-            <Link href="/auth/login" className="relative z-10 pointer-events-auto">
-              <Mic className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 xl:w-7 xl:h-7 text-white" />
-            </Link>
+
+
+           
           </div>
         </div>
     </div>

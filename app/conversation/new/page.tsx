@@ -19,6 +19,7 @@ function NewConversationContent() {
   const [error, setError] = useState<string>('');
 
   const language = searchParams.get('language') || 'english';
+  const assistantType = searchParams.get('assistantType') || 'scheduling';
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -45,21 +46,34 @@ function NewConversationContent() {
 
         setUserProfile(profile);
 
-        // Get user's existing assistant (get the most recent one)
+        // Get user's assistant for the specific type
+        console.log('Fetching assistant for type:', assistantType, 'user:', profile.id);
+        
         const { data: assistants, error: assistantError } = await supabase
           .from('voice_assistants')
-          .select('vapi_assistant_id')
+          .select('vapi_assistant_id, mode, created_at')
           .eq('user_id', profile.id)
+          .eq('mode', assistantType)
           .order('created_at', { ascending: false })
           .limit(1);
 
-        if (assistantError || !assistants || assistants.length === 0) {
+        console.log('Assistant query result:', { assistants, assistantError });
+
+        if (assistantError) {
           console.error('Assistant fetch error:', assistantError);
-          setError('Failed to load assistant. Please complete onboarding first.');
+          setError(`Database error: ${assistantError.message}`);
           return;
         }
 
-        setAssistantId(assistants[0].vapi_assistant_id);
+        if (!assistants || assistants.length === 0) {
+          console.error('No assistant found for type:', assistantType);
+          setError(`No ${assistantType} assistant found. Please complete onboarding first.`);
+          return;
+        }
+
+        const assistantId = assistants[0].vapi_assistant_id;
+        console.log('Found assistant ID:', assistantId);
+        setAssistantId(assistantId);
         
         // No call limit checks needed
       } catch (err) {
@@ -71,7 +85,7 @@ function NewConversationContent() {
     };
 
     fetchUserProfile();
-  }, [router]);
+  }, [router, assistantType]);
 
   const handleCallEnd = (duration: number, transcript?: string[]) => {
     console.log('Call ended:', { duration, transcript });
