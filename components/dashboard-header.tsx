@@ -8,15 +8,15 @@ import {
   LogOut, 
   Settings, 
   User,
-  Phone
+  Phone,
+  History
 } from 'lucide-react';
 
 interface DashboardHeaderProps {
   userName?: string;
-  remainingCalls?: number;
 }
 
-export function DashboardHeader({ userName, remainingCalls }: DashboardHeaderProps) {
+export function DashboardHeader({ userName }: DashboardHeaderProps) {
   const [user, setUser] = useState<{
     name: string;
     call_count: number;
@@ -72,50 +72,59 @@ export function DashboardHeader({ userName, remainingCalls }: DashboardHeaderPro
   }
 
   return (
-    <div className="w-full border-b border-border bg-background">
+    <div className="w-full border-b border-slate-200/50 bg-white/90 backdrop-blur-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-20">
           {/* Left side - Logo/Title */}
           <div className="flex items-center space-x-4">
-            <h1 className="text-xl font-semibold text-foreground">Voice AI</h1>
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+              <Phone className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                Voice AI
+              </h1>
+              <p className="text-sm text-slate-500">Intelligent Conversations</p>
+            </div>
           </div>
 
           {/* Right side - User info and actions */}
-          <div className="flex items-center space-x-4">
-            {/* Remaining calls indicator */}
-            <div className="flex items-center space-x-2">
-              <Phone className="w-4 h-4 text-muted-foreground" />
-              <Badge variant="secondary" className="text-sm">
-                {remainingCalls || user?.call_count ? `${3 - (user?.call_count || 0)} calls left` : 'Loading...'}
-              </Badge>
+          <div className="flex items-center space-x-6">
+            {/* User info */}
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center">
+                <User className="w-4 h-4 text-slate-600" />
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-medium text-slate-800">
+                  {userName || user?.name || 'User'}
+                </p>
+                <p className="text-xs text-slate-500">Welcome back</p>
+              </div>
             </div>
 
-            {/* User name */}
+            {/* Action buttons */}
             <div className="flex items-center space-x-2">
-              <User className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-foreground">
-                {userName || user?.name || 'User'}
-              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/conversation-history')}
+                className="text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors rounded-lg px-3 py-2"
+              >
+                <History className="w-4 h-4 mr-2" />
+                History
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="text-slate-600 hover:text-red-600 hover:bg-red-50 transition-colors rounded-lg px-3 py-2"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
             </div>
-
-            {/* Settings button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flat-button"
-            >
-              <Settings className="w-4 h-4" />
-            </Button>
-
-            {/* Logout button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              className="flat-button text-destructive hover:text-destructive"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
           </div>
         </div>
       </div>

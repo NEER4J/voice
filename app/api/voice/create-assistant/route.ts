@@ -1,23 +1,22 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
-const MODE_PROMPTS = {
-  'Assistant': `You are a helpful AI assistant. Provide clear, accurate, and helpful responses to user questions. Be professional, friendly, and concise. Focus on being useful and informative.`,
-  
-  'Friend': `You are a supportive friend having a casual conversation. Be warm, empathetic, and encouraging. Use a conversational tone and show genuine interest in what the user is sharing. Be positive and supportive.`,
-  
-  'Life Coach': `You are an experienced life coach helping someone work through challenges and achieve their goals. Ask thoughtful questions, provide guidance, and help them gain clarity. Be motivational and solution-focused.`,
-  
-  'Tutor': `You are a knowledgeable tutor ready to help with learning and education. Explain concepts clearly, provide examples, and adapt your teaching style to the user's level. Be patient and encouraging.`,
-  
-  'Wellness Guide': `You are a wellness guide focused on mental health, mindfulness, and personal well-being. Provide gentle guidance, suggest coping strategies, and create a safe space for emotional support. Be compassionate and non-judgmental.`
+const TONE_MODIFIERS = {
+  'professional': 'Speak professionally and clearly. Use formal language and maintain a business-like tone.',
+  'casual': 'Speak in a casual, friendly manner. Use everyday language and be relaxed in your approach.',
+  'friendly': 'Speak warmly and supportively. Be encouraging and use a caring, empathetic tone.'
+};
+
+const LANGUAGE_INSTRUCTIONS = {
+  'english': '',
+  'arabic': 'Please respond in Arabic. Use clear, modern Arabic language.'
 };
 
 export async function POST(request: NextRequest) {
   try {
-    const { mode } = await request.json();
+    const { mode, tone = 'friendly', language = 'english' } = await request.json();
 
-    console.log('Create assistant request:', { mode });
+    console.log('Create assistant request:', { mode, tone, language });
 
     if (!mode) {
       console.log('Missing required field:', { mode });
@@ -42,18 +41,71 @@ export async function POST(request: NextRequest) {
 
     console.log('Authenticated user:', user.id);
 
-    if (!MODE_PROMPTS[mode as keyof typeof MODE_PROMPTS]) {
+    // Build the system prompt with tone and language
+    const basePrompt = `You are a helpful AI assistant. Provide clear, accurate, and helpful responses to user questions. Be professional, friendly, and concise. Focus on being useful and informative.`;
+    const toneModifier = TONE_MODIFIERS[tone as keyof typeof TONE_MODIFIERS] || TONE_MODIFIERS.friendly;
+    const languageInstruction = LANGUAGE_INSTRUCTIONS[language as keyof typeof LANGUAGE_INSTRUCTIONS] || '';
+    
+    const systemPrompt = `${basePrompt} ${toneModifier} ${languageInstruction}`.trim();
+
+    // Get user profile first
+    let userProfile;
+    const { data: existingUserProfile, error: userProfileError } = await supabase
+      .from('users')
+      .select('id, name')
+      .eq('auth_user_id', user.id)
+      .single();
+
+    console.log('User profile lookup:', { 
+      existingUserProfile, 
+      userProfileError, 
+      authUserId: user.id 
+    });
+
+    if (!existingUserProfile || userProfileError) {
+      console.error('User profile not found:', userProfileError);
+      
+      // Try to create user profile if it doesn't exist
+      console.log('Attempting to create user profile for auth_user_id:', user.id);
+      
+      const { data: newUserProfile, error: createUserError } = await supabase
+        .from('users')
+        .insert({
+          auth_user_id: user.id,
+          name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+          call_count: 0
+        })
+        .select('id, name')
+        .single();
+      
+      if (createUserError || !newUserProfile) {
+        console.error('Failed to create user profile:', createUserError);
+        return NextResponse.json(
+          { error: 'Failed to create user profile. Please contact support.' },
+          { status: 500 }
+        );
+      }
+      
+      console.log('Created new user profile:', newUserProfile);
+      userProfile = newUserProfile;
+    } else {
+      userProfile = existingUserProfile;
+    }
+
+    if (!userProfile.id) {
+      console.error('User profile ID is null:', userProfile);
       return NextResponse.json(
-        { error: 'Invalid mode' },
+        { error: 'Invalid user profile. Please contact support.' },
         { status: 400 }
       );
     }
 
-    // Check if assistant for this mode already exists
+    // Check if assistant for this mode already exists (fallback for when tone/language columns don't exist yet)
     const { data: existingAssistant, error: fetchError } = await supabase
       .from('voice_assistants')
       .select('*')
       .eq('mode', mode)
+      .eq('user_id', userProfile.id)
       .single();
 
     if (existingAssistant && !fetchError) {
@@ -88,22 +140,31 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Get user name for assistant naming
+    const userName = userProfile?.name || 'User';
+    const assistantNumber = Math.floor(Math.random() * 2) + 1; // Random 1 or 2
+    
     // Create assistant via Vapi API
     const assistantData = {
-      name: `${mode} Assistant`,
+      name: `${userName} Assistant ${assistantNumber}`,
       model: {
-        provider: 'openai',
-        model: 'gpt-4o-mini',
+        provider: 'groq',
+        model: 'openai/gpt-oss-20b',
         messages: [
           {
             role: 'system',
-            content: MODE_PROMPTS[mode as keyof typeof MODE_PROMPTS]
+            content: systemPrompt
           }
         ]
       },
       voice: {
         provider: '11labs',
-        voiceId: '21m00Tcm4TlvDq8ikWAM' // Default voice - fallback to 'pNInz6obpgDQGcFmaJgB' if this fails
+        voiceId: 'cgSgspJ2msm6clMCkdW9'
+      },
+      transcriber: {
+        provider: 'deepgram',
+        model: 'nova-2',
+        language: 'en'
       },
       firstMessage: `Hello! I'm your ${mode.toLowerCase()}. How can I help you today?`,
       maxDurationSeconds: 60,
@@ -135,12 +196,26 @@ export async function POST(request: NextRequest) {
     const assistant = await response.json();
 
         // Store the assistant in our database for reuse
+        const insertData: any = {
+          user_id: userProfile.id,
+          mode,
+          vapi_assistant_id: assistant.id
+        };
+        
+        // Only add tone and language if columns exist
+        try {
+          insertData.tone = tone;
+          insertData.language = language;
+        } catch (error) {
+          // Columns don't exist yet, continue without them
+          console.log('Tone/language columns not available yet');
+        }
+        
+        console.log('Inserting assistant with data:', insertData);
+        
         const { data: storedAssistant, error: insertError } = await supabase
           .from('voice_assistants')
-          .insert({
-            mode,
-            vapi_assistant_id: assistant.id
-          })
+          .insert(insertData)
           .select('id')
           .single();
 

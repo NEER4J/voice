@@ -4,14 +4,12 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { DashboardHeader } from '@/components/dashboard-header';
-import { NewConversationCard } from '@/components/new-conversation-card';
-import { ConversationHistory } from '@/components/conversation-history';
+import { SimplifiedDashboard } from '@/components/simplified-dashboard';
 
 export default function DashboardPage() {
   const router = useRouter();
   const [userProfile, setUserProfile] = useState<{
     name: string;
-    preferred_mode: string;
     call_count: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,7 +28,7 @@ export default function DashboardPage() {
 
         const { data: profile, error: profileError } = await supabase
           .from('users')
-          .select('name, preferred_mode, call_count')
+          .select('name, call_count')
           .eq('auth_user_id', user.id)
           .single();
 
@@ -54,10 +52,10 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading dashboard...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading dashboard...</p>
         </div>
       </div>
     );
@@ -65,9 +63,9 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-destructive mb-4">{error}</p>
+          <p className="text-red-600 mb-4">{error}</p>
           <button 
             onClick={() => router.push('/auth/login')}
             className="flat-button-primary"
@@ -82,28 +80,12 @@ export default function DashboardPage() {
   const remainingCalls = userProfile ? 3 - userProfile.call_count : 0;
 
   return (
-    <div className=" bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <DashboardHeader 
         userName={userProfile?.name}
-        remainingCalls={remainingCalls}
       />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Start New Conversation */}
-          <div className="space-y-6">
-            <NewConversationCard 
-              preferredMode={userProfile?.preferred_mode}
-              remainingCalls={remainingCalls}
-            />
-          </div>
-
-          {/* Conversation History */}
-          <div className="space-y-6">
-            <ConversationHistory />
-          </div>
-        </div>
-      </div>
+          <SimplifiedDashboard userName={userProfile?.name} />
     </div>
   );
 }

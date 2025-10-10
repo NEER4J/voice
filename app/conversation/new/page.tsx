@@ -5,19 +5,21 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { VoiceInterface } from '@/components/voice-interface';
 import { DashboardHeader } from '@/components/dashboard-header';
+import ParticleCircle from '@/components/ParticleCircle';
 
 function NewConversationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [userProfile, setUserProfile] = useState<{
     name: string;
-    preferred_mode: string;
     call_count: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
 
   const mode = searchParams.get('mode') || 'Assistant';
+  const tone = searchParams.get('tone') || 'friendly';
+  const language = searchParams.get('language') || 'english';
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -32,7 +34,7 @@ function NewConversationContent() {
 
         const { data: profile, error: profileError } = await supabase
           .from('users')
-          .select('name, preferred_mode, call_count')
+          .select('name, call_count')
           .eq('auth_user_id', user.id)
           .single();
 
@@ -44,11 +46,7 @@ function NewConversationContent() {
 
         setUserProfile(profile);
         
-        const remainingCalls = profile ? 3 - profile.call_count : 0;
-        if (remainingCalls <= 0) {
-          router.push('/dashboard?error=call_limit_reached');
-          return;
-        }
+        // No call limit checks needed
       } catch (err) {
         console.error('Error fetching user profile:', err);
         setError('Failed to load user profile');
@@ -60,7 +58,7 @@ function NewConversationContent() {
     fetchUserProfile();
   }, [router]);
 
-  const handleCallEnd = (duration: number, transcript: string[]) => {
+  const handleCallEnd = (duration: number, transcript?: string[]) => {
     console.log('Call ended:', { duration, transcript });
     router.push('/dashboard');
   };
@@ -72,10 +70,10 @@ function NewConversationContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading conversation...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading conversation...</p>
         </div>
       </div>
     );
@@ -83,9 +81,9 @@ function NewConversationContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-destructive mb-4">{error}</p>
+          <p className="text-red-600 mb-4">{error}</p>
           <button 
             onClick={() => router.push('/dashboard')}
             className="flat-button-primary"
@@ -97,30 +95,34 @@ function NewConversationContent() {
     );
   }
 
-  const remainingCalls = userProfile ? 3 - userProfile.call_count : 0;
+  // No call limit tracking needed
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <DashboardHeader 
-        userName={userProfile?.name}
-        remainingCalls={remainingCalls}
-      />
+        userName={userProfile?.name}      />
       
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Voice Conversation</h1>
-          <p className="text-muted-foreground">
-            Talking with your {mode.toLowerCase()}
-          </p>
-        </div>
+          {/* Full screen layout with centered particle circle */}
+          <div className="relative h-[calc(100vh-4rem)] bg-gradient-to-br from-blue-50 via-white to-slate-50 overflow-hidden">
+            {/* Particle Circle - Centered and Bigger */}
+            <div className="absolute inset-0 flex items-center justify-center p-8">
+              <div className="w-full h-full max-w-4xl max-h-4xl flex items-center justify-center">
+                <ParticleCircle enableVoiceReactivity={true} />
+              </div>
+            </div>
 
-        <VoiceInterface
-          mode={mode}
-          remainingCalls={remainingCalls}
-          onCallEnd={handleCallEnd}
-          onError={handleError}
-        />
-      </div>
+            {/* Voice Interface - Overlay */}
+            <div className="absolute inset-0">
+              <VoiceInterface
+                mode={mode}
+                tone={tone}
+                language={language}
+                autoStart={true}
+                onCallEnd={handleCallEnd}
+                onError={handleError}
+              />
+            </div>
+          </div>
     </div>
   );
 }

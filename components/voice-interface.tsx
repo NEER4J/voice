@@ -10,7 +10,9 @@ import {
   Phone, 
   PhoneOff, 
   Clock,
-  Users
+  Users,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 
 // Import Vapi SDK
@@ -20,7 +22,9 @@ interface VoiceInterfaceProps {
   assistantId?: string;
   conversationId?: string;
   mode: string;
-  remainingCalls: number;
+  tone?: string;
+  language?: string;
+  autoStart?: boolean;
   onCallEnd: (duration: number, transcript?: string[]) => void;
   onError: (error: string) => void;
 }
@@ -31,17 +35,21 @@ export function VoiceInterface({
   assistantId: propAssistantId, 
   conversationId: propConversationId, 
   mode, 
-  remainingCalls, 
+  tone = 'friendly',
+  language = 'english',
+  autoStart = false,
   onCallEnd, 
   onError 
 }: VoiceInterfaceProps) {
   const [status, setStatus] = useState<CallStatus>('idle');
   const [isMuted, setIsMuted] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [transcript, setTranscript] = useState<string[]>([]);
+  // Removed transcript state since we're not showing live transcripts
   const [assistantId, setAssistantId] = useState<string>(propAssistantId || '');
   const [conversationId, setConversationId] = useState<string>(propConversationId || '');
   const [isInitializing, setIsInitializing] = useState(false);
+  const [vapiCallId, setVapiCallId] = useState<string>('');
+  const [isEndingCall, setIsEndingCall] = useState(false);
   
   const vapiRef = useRef<Vapi | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -52,6 +60,7 @@ export function VoiceInterface({
     if (typeof window !== 'undefined') {
       const vapiKey = process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY;
       console.log('Vapi key available:', !!vapiKey);
+      console.log('Vapi key length:', vapiKey?.length);
       
       if (!vapiKey) {
         onError('Vapi configuration missing. Please check your environment variables.');
@@ -61,25 +70,59 @@ export function VoiceInterface({
       vapiRef.current = new Vapi(vapiKey);
       
       // Set up event listeners
-      vapiRef.current.on('call-start', () => {
-        console.log('Call started');
+      vapiRef.current.on('call-start', (callData?: any) => {
+        console.log('Call started with data:', callData);
         setStatus('connected');
-        // Add initial greeting to transcript
-        setTranscript(prev => [...prev, `${mode}: Hello! I'm your ${mode.toLowerCase()}. How can I help you today?`]);
+        
+        // Capture the call ID if available
+        if (callData && callData.id) {
+          setVapiCallId(callData.id);
+          console.log('Vapi call ID captured from call-start:', callData.id);
+        } else {
+          console.log('No call ID received in call-start event. Call data:', callData);
+          
+          // Try to get call ID from Vapi instance
+          if (vapiRef.current) {
+            const instanceCallId = (vapiRef.current as any).callId || (vapiRef.current as any).id;
+            if (instanceCallId) {
+              setVapiCallId(instanceCallId);
+              console.log('Vapi call ID captured from instance:', instanceCallId);
+            }
+          }
+        }
+        
+        // No need to add to transcript since we're not showing live transcripts
+        
+        // Try to get call ID after a short delay if not captured yet
+        setTimeout(() => {
+          if (!vapiCallId && vapiRef.current) {
+            const callId = (vapiRef.current as any).callId || (vapiRef.current as any).id;
+            if (callId) {
+              setVapiCallId(callId);
+              console.log('Captured call ID from Vapi instance after delay:', callId);
+            }
+          }
+        }, 1000);
       });
 
-      // Add more debugging events
-      vapiRef.current.on('call-settings', (settings) => {
-        console.log('Call settings:', settings);
-      });
-
-      vapiRef.current.on('call-update', (update) => {
-        console.log('Call update:', update);
-      });
+      // Add comprehensive event logging
+      // Note: Some events may not be supported in current Vapi SDK version
 
       vapiRef.current.on('call-end', () => {
         console.log('Call ended');
         setStatus('ended');
+        
+        // Try to get call ID from Vapi instance if we don't have it yet
+        if (!vapiCallId && vapiRef.current) {
+          // Some Vapi instances might expose the call ID
+          const callId = (vapiRef.current as any).callId || (vapiRef.current as any).id;
+          if (callId) {
+            setVapiCallId(callId);
+            console.log('Captured call ID from Vapi instance on call-end:', callId);
+          } else {
+            console.log('Could not get call ID from Vapi instance. Available properties:', Object.keys(vapiRef.current));
+          }
+        }
       });
 
       vapiRef.current.on('speech-start', () => {
@@ -94,22 +137,29 @@ export function VoiceInterface({
 
       vapiRef.current.on('message', (message) => {
         console.log('Message received:', message);
-        if (message.type === 'transcript' && message.transcript && message.transcript.content) {
-          const role = message.transcript.role === 'assistant' ? mode : 'You';
-          setTranscript(prev => [...prev, `${role}: ${message.transcript.content}`]);
+        console.log('Message type:', message.type);
+        console.log('Message content:', message);
+        
+        // We'll handle transcripts after call ends, not in real-time
+        // Just log for debugging
+        if (message.type === 'transcript' && message.transcript) {
+          console.log('Transcript message received (will be processed after call ends):', message.transcript);
+        }
+        
+        if (message.type === 'conversation' && message.conversation) {
+          console.log('Conversation message:', message.conversation);
+        }
+        
+        if (message.type === 'function-call' && message.functionCall) {
+          console.log('Function call message:', message.functionCall);
         }
       });
 
-      // Add user speech detection
-      vapiRef.current.on('user-speech-start', () => {
-        console.log('User started speaking');
-        setStatus('listening');
-      });
+      // Note: Some transcript events may not be supported in current Vapi SDK version
+      // We rely on the message event with type 'transcript' for transcript handling
 
-      vapiRef.current.on('user-speech-end', () => {
-        console.log('User finished speaking');
-        setStatus('speaking');
-      });
+      // Add user speech detection
+      // Note: user-speech-start and user-speech-end events are not supported in current Vapi SDK
 
       vapiRef.current.on('error', (error) => {
         console.error('Vapi error:', error);
@@ -128,8 +178,118 @@ export function VoiceInterface({
     };
   }, [onError, mode]);
 
+  const handleStartCall = useCallback(async () => {
+    try {
+      setStatus('connecting');
+      setIsInitializing(true);
+
+      // Request microphone permission first
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('Microphone permission granted');
+      } catch (permissionError) {
+        console.error('Microphone permission denied:', permissionError);
+        onError('Microphone access is required for voice calls. Please allow microphone access and try again.');
+        setStatus('idle');
+        setIsInitializing(false);
+        return;
+      }
+
+      if (!vapiRef.current) {
+        throw new Error('Vapi not initialized');
+      }
+
+      let currentAssistantId = assistantId;
+      let currentConversationId = conversationId;
+
+      // Create assistant if not provided
+      if (!currentAssistantId) {
+        console.log('Creating assistant for mode:', mode, 'tone:', tone, 'language:', language);
+        const assistantResponse = await fetch('/api/voice/create-assistant', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode, tone, language })
+        });
+
+        if (!assistantResponse.ok) {
+          const errorData = await assistantResponse.json();
+          console.error('Assistant creation failed:', errorData);
+          throw new Error(errorData.error || errorData.message || 'Failed to create assistant');
+        }
+
+        const assistantData = await assistantResponse.json();
+        currentAssistantId = assistantData.assistantId;
+        setAssistantId(currentAssistantId);
+        console.log('Assistant created:', currentAssistantId);
+      }
+
+      // Create conversation if not provided
+      if (!currentConversationId) {
+        console.log('Creating conversation for assistant:', currentAssistantId);
+        const conversationResponse = await fetch('/api/voice/start-call', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            assistantId: currentAssistantId,
+            mode
+          })
+        });
+
+        if (!conversationResponse.ok) {
+          const errorData = await conversationResponse.json();
+          console.error('Conversation creation failed:', errorData);
+          throw new Error(errorData.error || errorData.message || 'Failed to create conversation');
+        }
+
+        const conversationData = await conversationResponse.json();
+        currentConversationId = conversationData.conversationId;
+        setConversationId(currentConversationId);
+        console.log('Conversation created:', currentConversationId);
+      }
+
+      // Start the call with the assistant ID
+      console.log('Starting call with assistant ID:', currentAssistantId);
+      console.log('Vapi instance:', vapiRef.current);
+      
+      if (!vapiRef.current) {
+        throw new Error('Vapi not initialized');
+      }
+      
+      await vapiRef.current.start(currentAssistantId);
+
+    } catch (error) {
+      console.error('Start call error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start call. Please try again.';
+      onError(errorMessage);
+      setStatus('idle');
+    } finally {
+      setIsInitializing(false);
+    }
+  }, [assistantId, conversationId, mode, tone, language, onError]);
+
+  // Auto-start effect
+  useEffect(() => {
+    if (autoStart && status === 'idle' && !isInitializing) {
+      handleStartCall();
+    }
+  }, [autoStart, status, isInitializing, handleStartCall]);
+
+  // Auto-scroll to bottom when new transcript messages arrive
+  // Removed transcript auto-scroll since we're not showing live transcripts
+
+  const handleToggleMute = useCallback(() => {
+    if (vapiRef.current) {
+      const newMuteState = !isMuted;
+      vapiRef.current.setMuted(newMuteState);
+      setIsMuted(newMuteState);
+      console.log('Microphone muted:', newMuteState);
+    }
+  }, [isMuted]);
+
   const handleEndCall = useCallback(async () => {
     try {
+      setIsEndingCall(true);
+      
       if (vapiRef.current) {
         await vapiRef.current.stop();
       }
@@ -146,21 +306,48 @@ export function VoiceInterface({
           body: JSON.stringify({
             conversationId,
             duration,
-            transcript: transcript.length > 0 ? transcript : null
+            transcript: null, // We'll get transcript from Vapi API
+            vapiCallId: vapiCallId || null
           })
         });
 
-        if (!response.ok) {
-          console.error('Failed to end call in database');
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Call ended successfully, received data:', {
+            success: data.success,
+            transcriptSource: data.transcriptSource,
+            vapiCallId: data.vapiCallId,
+            recordingUrl: data.recordingUrl,
+            transcriptLength: data.transcript?.length || 0,
+            message: data.message
+          });
+          
+          // If we have a transcript from the API, use it
+          if (data.transcript && data.transcript.length > 0) {
+            console.log('Received transcript from API with', data.transcript.length, 'messages');
+            const formattedTranscript = data.transcript.map((item: any) => 
+              `${item.role === 'assistant' ? mode : 'You'}: ${item.message}`
+            );
+            onCallEnd(duration, formattedTranscript);
+            return;
+          } else {
+            console.log('No transcript received from API');
+          }
+        } else {
+          const errorData = await response.json();
+          console.error('Failed to end call in database:', errorData);
         }
       }
 
-      onCallEnd(duration, transcript);
+      // Fallback if no API transcript
+      onCallEnd(duration, []);
     } catch (error) {
       console.error('End call error:', error);
       onError('Failed to end call properly');
+    } finally {
+      setIsEndingCall(false);
     }
-  }, [conversationId, transcript, onCallEnd, onError]);
+  }, [conversationId, vapiCallId, onCallEnd, onError]);
 
   useEffect(() => {
     if (status === 'connected') {
@@ -205,85 +392,6 @@ export function VoiceInterface({
     };
   }, [status, handleEndCall]);
 
-  const handleStartCall = async () => {
-    try {
-      setStatus('connecting');
-      setIsInitializing(true);
-
-      // Request microphone permission first
-      try {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-        console.log('Microphone permission granted');
-      } catch (permissionError) {
-        console.error('Microphone permission denied:', permissionError);
-        onError('Microphone access is required for voice calls. Please allow microphone access and try again.');
-        setStatus('idle');
-        setIsInitializing(false);
-        return;
-      }
-
-      if (!vapiRef.current) {
-        throw new Error('Vapi not initialized');
-      }
-
-      let currentAssistantId = assistantId;
-      let currentConversationId = conversationId;
-
-      // Create assistant if not provided
-      if (!currentAssistantId) {
-        console.log('Creating assistant for mode:', mode);
-        const assistantResponse = await fetch('/api/voice/create-assistant', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode })
-        });
-
-        if (!assistantResponse.ok) {
-          const errorData = await assistantResponse.json();
-          throw new Error(errorData.error || 'Failed to create assistant');
-        }
-
-        const assistantData = await assistantResponse.json();
-        currentAssistantId = assistantData.assistantId;
-        setAssistantId(currentAssistantId);
-        console.log('Assistant created:', currentAssistantId);
-      }
-
-      // Create conversation if not provided
-      if (!currentConversationId) {
-        console.log('Creating conversation for assistant:', currentAssistantId);
-        const conversationResponse = await fetch('/api/voice/start-call', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            assistantId: currentAssistantId,
-            mode
-          })
-        });
-
-        if (!conversationResponse.ok) {
-          const errorData = await conversationResponse.json();
-          throw new Error(errorData.error || 'Failed to create conversation');
-        }
-
-        const conversationData = await conversationResponse.json();
-        currentConversationId = conversationData.conversationId;
-        setConversationId(currentConversationId);
-        console.log('Conversation created:', currentConversationId);
-      }
-
-      // Start the call with the assistant ID
-      await vapiRef.current.start(currentAssistantId);
-
-    } catch (error) {
-      console.error('Start call error:', error);
-      onError('Failed to start call. Please try again.');
-      setStatus('idle');
-    } finally {
-      setIsInitializing(false);
-    }
-  };
-
   const toggleMute = () => {
     if (vapiRef.current) {
       if (isMuted) {
@@ -324,152 +432,87 @@ export function VoiceInterface({
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto flat-card">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Voice Conversation</CardTitle>
-        <CardDescription>
-          Talking with your {mode.toLowerCase()} • {formatTime(elapsedTime)}
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        {/* Status and Controls */}
-        <div className="flex flex-col items-center space-y-4">
-          <div className="flex items-center space-x-4">
-            <Badge className={`px-4 py-2 ${getStatusColor()}`}>
+    <div className="w-full h-full flex flex-col relative">
+      {/* Status Indicator - Top Right */}
+      <div className="absolute top-6 right-6 z-10">
+        <div className="flex items-center space-x-3 bg-white/95 backdrop-blur-sm rounded-2xl px-6 py-3 border border-slate-200/50 shadow-lg">
+          <div className={`w-4 h-4 rounded-full ${
+            status === 'connected' ? 'bg-green-500 animate-pulse' : 
+            status === 'speaking' ? 'bg-blue-500 animate-pulse' :
+            status === 'listening' ? 'bg-purple-500 animate-pulse' :
+            'bg-gray-400'
+          }`}></div>
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold text-slate-800">
               {getStatusText()}
-            </Badge>
-            
+            </span>
             {status === 'connected' && (
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <Clock className="w-4 h-4" />
-                <span>{formatTime(elapsedTime)} / 1:00</span>
+              <div className="flex items-center space-x-1 text-xs text-slate-600">
+                <Clock className="w-3 h-3" />
+                <span>{formatTime(elapsedTime)}</span>
               </div>
             )}
-          </div>
-
-          <div className="flex items-center space-x-2 text-sm text-gray-600">
-            <Users className="w-4 h-4" />
-            <span>{remainingCalls} calls remaining</span>
           </div>
         </div>
+      </div>
 
-        {/* Call Controls */}
-        <div className="flex flex-col items-center space-y-4">
-          {/* Primary Action Button */}
-          <div className="flex justify-center space-x-4">
-            {status === 'idle' && (
-              <Button
-                onClick={handleStartCall}
-                disabled={isInitializing}
-                size="lg"
-                className="flat-button-primary px-8 py-3"
-              >
-                {isInitializing ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Setting up...
-                  </>
-                ) : (
-                  <>
-                    <Phone className="w-5 h-5 mr-2" />
-                    Start Call
-                  </>
-                )}
-              </Button>
+      {/* Floating Action Buttons - Bottom Center */}
+      {(status === 'connected' || status === 'speaking' || status === 'listening') && (
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10 flex space-x-4">
+          {/* Mute Button */}
+          <Button
+            onClick={handleToggleMute}
+            variant="outline"
+            size="lg"
+            className={`rounded-full w-16 h-16 shadow-lg transition-all duration-200 ${
+              isMuted 
+                ? 'bg-red-500 hover:bg-red-600 text-white border-red-500' 
+                : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300'
+            }`}
+          >
+            {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+          </Button>
+
+          {/* Stop Button */}
+          <Button
+            onClick={handleEndCall}
+            variant="destructive"
+            size="lg"
+            disabled={isEndingCall}
+            className="bg-red-500 hover:bg-red-600 text-white rounded-full w-16 h-16 shadow-lg"
+          >
+            {isEndingCall ? (
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+            ) : (
+              <PhoneOff className="w-6 h-6" />
             )}
-
-            {status === 'connected' && (
-              <>
-                <Button
-                  onClick={toggleMute}
-                  variant={isMuted ? "destructive" : "outline"}
-                  size="lg"
-                  className={isMuted ? "flat-button-destructive px-6 py-3" : "flat-button px-6 py-3"}
-                >
-                  {isMuted ? <MicOff className="w-5 h-5 mr-2" /> : <Mic className="w-5 h-5 mr-2" />}
-                  {isMuted ? 'Unmute' : 'Mute'}
-                </Button>
-
-                <Button
-                  onClick={handleEndCall}
-                  variant="destructive"
-                  size="lg"
-                  className="flat-button-destructive px-8 py-3"
-                >
-                  <PhoneOff className="w-5 h-5 mr-2" />
-                  End Call
-                </Button>
-              </>
-            )}
-
-            {status === 'ended' && (
-              <div className="text-center">
-                <p className="text-gray-600 mb-4">Call completed successfully!</p>
-                <Button onClick={() => window.location.reload()} size="lg">
-                  Start New Conversation
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {/* Emergency Stop Button - Always visible when call is active */}
-          {(status === 'connected' || status === 'speaking' || status === 'listening') && (
-            <div className="flex flex-col items-center space-y-2">
-              <p className="text-sm text-gray-500">Need to stop immediately?</p>
-              <div className="flex items-center space-x-2">
-                <Button
-                  onClick={handleEndCall}
-                  variant="destructive"
-                  size="sm"
-                  className="bg-red-500 hover:bg-red-600 text-white"
-                >
-                  <PhoneOff className="w-4 h-4 mr-2" />
-                  Emergency Stop
-                </Button>
-                <span className="text-xs text-gray-400">or press ESC</span>
-              </div>
-            </div>
-          )}
-
-          {/* Status-specific stop buttons */}
-          {(status === 'connecting' || status === 'speaking' || status === 'listening') && (
-            <Button
-              onClick={handleEndCall}
-              variant="outline"
-              size="sm"
-              className="text-red-600 border-red-300 hover:bg-red-50"
-            >
-              <PhoneOff className="w-4 h-4 mr-2" />
-              Stop Call
-            </Button>
-          )}
+          </Button>
         </div>
+      )}
 
-        {/* Transcript */}
-        {transcript.length > 0 && (
-          <div className="bg-gray-50 rounded-lg p-4 max-h-40 overflow-y-auto">
-            <h4 className="font-medium mb-2">Conversation</h4>
-            <div className="space-y-2">
-              {transcript.map((message, index) => (
-                <p key={index} className="text-sm text-gray-700">
-                  {message}
-                </p>
-              ))}
-            </div>
+      {/* Loading/Processing States */}
+      {(status === 'connecting' || status === 'idle') && (
+        <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center z-20">
+          <div className="text-center p-6 bg-white/90 rounded-2xl shadow-lg border border-slate-200">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-lg font-medium text-slate-700">
+              {status === 'connecting' ? 'Preparing conversation...' : 'Starting up...'}
+            </p>
+            <p className="text-sm text-slate-500 mt-2">Please wait while we set up your voice assistant</p>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Progress Bar */}
-        {status === 'connected' && (
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-blue-600 h-2 rounded-full transition-all duration-1000"
-              style={{ width: `${(elapsedTime / 60) * 100}%` }}
-            />
+      {/* Processing Overlay */}
+      {isEndingCall && (
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-20">
+          <div className="text-center p-6 bg-white/90 rounded-2xl shadow-lg border border-slate-200">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-lg font-medium text-slate-700">Processing transcript...</p>
+            <p className="text-sm text-slate-500 mt-2">Saving your conversation data</p>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+    </div>
   );
 }

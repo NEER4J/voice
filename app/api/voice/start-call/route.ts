@@ -31,37 +31,54 @@ export async function POST(request: NextRequest) {
 
     console.log('Authenticated user:', user.id);
 
-    // Get user profile and check call limit
-    const { data: userProfile, error: userError } = await supabase
+    // Get user profile
+    let userProfile;
+    const { data: existingUserProfile, error: userError } = await supabase
       .from('users')
       .select('id, call_count')
       .eq('auth_user_id', user.id)
       .single();
 
-    console.log('User profile lookup:', { userProfile, userError });
+    console.log('User profile lookup:', { existingUserProfile, userError });
 
-    if (userError || !userProfile) {
+    if (userError || !existingUserProfile) {
       console.log('User profile not found:', userError);
-      return NextResponse.json(
-        { error: 'User profile not found' },
-        { status: 404 }
-      );
+      
+      // Try to create user profile if it doesn't exist
+      console.log('Attempting to create user profile for auth_user_id:', user.id);
+      
+      const { data: newUserProfile, error: createUserError } = await supabase
+        .from('users')
+        .insert({
+          auth_user_id: user.id,
+          name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+          call_count: 0
+        })
+        .select('id, call_count')
+        .single();
+      
+      if (createUserError || !newUserProfile) {
+        console.error('Failed to create user profile:', createUserError);
+        return NextResponse.json(
+          { error: 'Failed to create user profile. Please contact support.' },
+          { status: 500 }
+        );
+      }
+      
+      console.log('Created new user profile:', newUserProfile);
+      userProfile = newUserProfile;
+    } else {
+      userProfile = existingUserProfile;
     }
 
     console.log('User profile found:', userProfile);
-
-    if (userProfile.call_count >= 3) {
-      return NextResponse.json(
-        { error: 'Call limit reached' },
-        { status: 403 }
-      );
-    }
 
     // Get the assistant record from our database
     const { data: assistant, error: assistantError } = await supabase
       .from('voice_assistants')
       .select('id')
       .eq('vapi_assistant_id', assistantId)
+      .eq('user_id', userProfile.id)
       .single();
 
     console.log('Assistant lookup:', { assistant, assistantError });
@@ -74,6 +91,7 @@ export async function POST(request: NextRequest) {
       const { data: newAssistant, error: insertError } = await supabase
         .from('voice_assistants')
         .insert({
+          user_id: userProfile.id,
           mode,
           vapi_assistant_id: assistantId
         })
@@ -118,28 +136,6 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('Conversation created successfully:', conversation);
-
-    // Increment call count
-    console.log('Updating call count:', { 
-      userId: userProfile.id, 
-      currentCount: userProfile.call_count,
-      newCount: userProfile.call_count + 1
-    });
-
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({ call_count: userProfile.call_count + 1 })
-      .eq('id', userProfile.id);
-
-    if (updateError) {
-      console.error('Failed to update call count:', updateError);
-      return NextResponse.json(
-        { error: 'Failed to update call count' },
-        { status: 500 }
-      );
-    }
-
-    console.log('Call count updated successfully');
 
     return NextResponse.json({
       conversationId: conversation.id,
