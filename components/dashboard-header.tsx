@@ -45,7 +45,7 @@ export function DashboardHeader({ userName }: DashboardHeaderProps) {
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium text-slate-800">
-                  {userName || 'User'}
+                  {userName ? userName.split(' ')[0] : 'User'}
                 </p>
               </div>
             </div>

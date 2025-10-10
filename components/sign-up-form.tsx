@@ -14,7 +14,6 @@ export function SignUpForm({
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
   const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
@@ -28,8 +27,8 @@ export function SignUpForm({
     setIsLoading(true);
     setError(null);
 
-    if (!firstName.trim() || !lastName.trim()) {
-      setError("First name and last name are required");
+    if (!firstName.trim()) {
+      setError("First name is required");
       setIsLoading(false);
       return;
     }
@@ -48,8 +47,7 @@ export function SignUpForm({
           emailRedirectTo: `${window.location.origin}/onboarding`,
           data: {
             first_name: firstName,
-            last_name: lastName,
-            full_name: `${firstName} ${lastName}`
+            full_name: firstName
           }
         },
       });
@@ -68,31 +66,17 @@ export function SignUpForm({
 
       <form onSubmit={handleSignUp}>
         <div className="flex flex-col gap-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName" className="text-sm font-medium lg:text-foreground lg:font-normal text-gray-700 lg:text-foreground">First Name *</Label>
-              <Input
-                id="firstName"
-                type="text"
-                placeholder="First name"
-                required
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="h-12 text-base lg:flat-input lg:bg-background lg:border-input lg:text-foreground bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30 lg:focus:bg-background"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName" className="text-sm font-medium lg:text-foreground lg:font-normal text-gray-700 lg:text-foreground">Last Name *</Label>
-              <Input
-                id="lastName"
-                type="text"
-                placeholder="Last name"
-                required
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className="h-12 text-base lg:flat-input lg:bg-background lg:border-input lg:text-foreground bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30 lg:focus:bg-background"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="firstName" className="text-sm font-medium lg:text-foreground lg:font-normal text-gray-700 lg:text-foreground">Name *</Label>
+            <Input
+              id="firstName"
+              type="text"
+              placeholder="Your name"
+              required
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className="h-12 text-base lg:flat-input lg:bg-background lg:border-input lg:text-foreground bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30 lg:focus:bg-background"
+            />
           </div>
           
           <div className="space-y-2">

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { MagicButton } from '@/components/ui/button';
 import { 
   Mic
 } from 'lucide-react';
@@ -46,11 +46,11 @@ export function SimplifiedDashboard({ userName }: SimplifiedDashboardProps) {
 
   return (
     <div className="min-h-[calc(100vh-6rem)] flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-slate-50 p-8">
-      <div className="max-w-2xl">
+      <div className="max-w-md">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-800 mb-2">
-            {userName ? `Hey, ${userName}!` : 'Hey there!'}
+            {userName ? `Hey, ${userName.split(' ')[0]}!` : 'Hey there!'}
           </h1>
           <p className="text-lg text-slate-600">
             Start a conversation with your AI assistant. Choose your preferred language.
@@ -109,15 +109,10 @@ export function SimplifiedDashboard({ userName }: SimplifiedDashboardProps) {
         )}
 
         {/* Start Conversation Button */}
-        <Button
+        <MagicButton
           onClick={handleStartConversation}
           disabled={loading || !selectedLanguage}
-          size="lg"
-          className={`w-full sm:w-auto px-12 py-4 text-lg font-semibold rounded-xl ${
-            !selectedLanguage 
-              ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
-              : 'bg-blue-600 hover:bg-blue-700 text-white'
-          }`}
+          className="w-full sm:w-auto"
         >
           {loading ? (
             <>
@@ -130,7 +125,7 @@ export function SimplifiedDashboard({ userName }: SimplifiedDashboardProps) {
               Start Conversation
             </>
           )}
-        </Button>
+        </MagicButton>
       </div>
     </div>
   );

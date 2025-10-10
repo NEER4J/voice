@@ -164,10 +164,11 @@ export async function POST(request: NextRequest) {
           'english': ''
         };
         
-        const userName = userProfile?.name || 'there';
+        const fullName = userProfile?.name || 'there';
+        const firstName = fullName.split(' ')[0]; // Get only the first word
         const firstMessages = {
-          'arabic': `مرحباً ${userName}! أنا مساعدك الذكي. كيف يمكنني مساعدتك اليوم؟`,
-          'english': `Hello ${userName}! I'm your AI assistant. How can I help you today?`
+          'arabic': `مرحباً ${firstName}! أنا مساعدك الذكي. كيف يمكنني مساعدتك اليوم؟`,
+          'english': `Hello ${firstName}! I'm your AI assistant. How can I help you today?`
         };
         
         const languageInstruction = languageInstructions[language as keyof typeof languageInstructions] || '';

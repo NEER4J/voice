@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     // First, try to find existing user by auth_user_id
     const { data: existingUser, error: findError } = await supabase
       .from('users')
-      .select('id, auth_user_id')
+      .select('id, auth_user_id, name')
       .eq('auth_user_id', user.id)
       .single();
 
@@ -57,13 +57,30 @@ export async function POST(request: NextRequest) {
     if (existingUser) {
       console.log('Updating existing user:', existingUser.id);
       userId = existingUser.id;
+      
+      // Check if name needs to be updated
+      const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User';
+      const needsNameUpdate = !existingUser.name || existingUser.name === '' || existingUser.name === user.email;
+      
       // Update existing user
+      const updateData: {
+        preferred_mode: string;
+        onboarding_completed: boolean;
+        name?: string;
+      } = {
+        preferred_mode,
+        onboarding_completed: true
+      };
+      
+      // Add name update if needed
+      if (needsNameUpdate) {
+        updateData.name = userName;
+        console.log('Updating user name to:', userName);
+      }
+      
       const { error: updateError } = await supabase
         .from('users')
-        .update({
-          preferred_mode,
-          onboarding_completed: true
-        })
+        .update(updateData)
         .eq('id', existingUser.id);
 
       if (updateError) {
@@ -81,7 +98,7 @@ export async function POST(request: NextRequest) {
         .from('users')
         .insert({
           auth_user_id: user.id,
-          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+          name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User',
           email: user.email || '',
           preferred_mode,
           call_count: 0,
